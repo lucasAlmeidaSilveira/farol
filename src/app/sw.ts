@@ -2,7 +2,12 @@
 /// <reference lib="webworker" />
 
 import { defaultCache } from '@serwist/turbopack/worker'
-import { type PrecacheEntry, Serwist, type SerwistGlobalConfig } from 'serwist'
+import {
+  NetworkOnly,
+  type PrecacheEntry,
+  Serwist,
+  type SerwistGlobalConfig,
+} from 'serwist'
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -30,7 +35,23 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    /*
+      O fluxo de autenticação NUNCA passa pelo cache.
+
+      `/__/auth/*` é o handler do Firebase, servido pelo nosso domínio via
+      rewrite. Cada login carrega um `state` de uso único; devolver uma versão
+      cacheada faria o login falhar de forma intermitente — o pior tipo de bug
+      para depurar, porque funciona na primeira vez e quebra depois.
+
+      Precisa vir ANTES do `defaultCache`: vale a primeira rota que casar.
+    */
+    {
+      matcher: ({ url }: { url: URL }) => url.pathname.startsWith('/__/'),
+      handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {
