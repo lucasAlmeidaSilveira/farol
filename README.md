@@ -1,34 +1,142 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+<img src="public/icons/icon-192.png" alt="" width="88" height="88">
 
-First, run the development server:
+# Farol
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Clareza sobre o seu dinheiro.**
+
+Um app de finanças pessoais que responde uma pergunta só: _quanto eu posso gastar até o fim do mês?_
+
+</div>
+
+---
+
+## O problema
+
+Apps de finanças costumam pedir disciplina de lançamento antes de entregar qualquer valor. Quem mais precisa de controle é justamente quem não tem essa disciplina — e desiste na segunda semana, com um app cheio de campos vazios e nenhuma resposta.
+
+O Farol inverte a ordem: **começa pelo planejamento** (renda − compromissos = disponível) e trata o lançamento de gastos como refinamento opcional. Ele é útil no primeiro minuto, com zero lançamentos.
+
+O número principal se ajusta sozinho conforme a renda variável entra — inclusive os compromissos proporcionais, que são recalculados sobre a renda real do mês.
+
+## Funcionalidades
+
+- **Um número em destaque** — livre para gastar no mês, com ritmo diário sugerido
+- **Compromissos proporcionais** — percentuais sobre a renda, com rateio exato entre parcelas
+- **Renda fixa e variável** — o previsto vale enquanto o realizado não chega
+- **Vencimentos** — por dia do mês ou por _dia útil_, com lembrete ordenado por data
+- **Simulação de impacto** — ao registrar uma renda, mostra quanto sobe cada compromisso e a folga
+- **Offline de verdade** — PWA instalável; lançar sem rede funciona e sincroniza depois
+- **Temas claro, escuro e do sistema** — paleta verificada em contraste AAA
+
+## Stack
+
+| Camada | Escolha |
+| --- | --- |
+| Framework | Next.js 16 (App Router, Turbopack) · React 19 |
+| Linguagem | TypeScript strict + `noUncheckedIndexedAccess` |
+| Estilo | Tailwind CSS v4 · shadcn/ui sobre Radix |
+| Estado servidor | TanStack Query v5 ligado ao `onSnapshot` do Firestore |
+| Backend | Firebase Auth + Firestore (client-side puro) |
+| Validação | Zod v4 |
+| Testes | Vitest · fast-check · `@firebase/rules-unit-testing` |
+| PWA | Serwist |
+
+## Arquitetura
+
+A dependência é unidirecional e **verificada pelo ESLint**, não por convenção:
+
+```
+app → data → engine → domain
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```
+src/
+├── domain/       value objects, tipos e schemas Zod. Só depende de zod.
+├── engine/       cálculo puro (state → summary). Só importa domain.
+├── data/         ÚNICA camada que conhece Firebase
+├── hooks/        subscriptions e mutations, por domínio
+├── components/   ui/ (shadcn) + por feature
+└── app/          rotas do App Router
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Três invariantes sustentam o resto:
 
-## Learn More
+1. **A engine é uma função pura.** Nada de saldo incremental — entrou um lançamento, recalcula o mês inteiro. São dezenas de documentos, custa microssegundos, e elimina classes inteiras de bug de dessincronização.
+2. **Dinheiro é inteiro em centavos, sempre.** Percentual é inteiro em basis points. Nenhuma operação monetária toca `float` fora das funções de arredondamento auditadas.
+3. **`domain/` e `engine/` não conhecem Firebase, React nem Next.** Tentar importar qualquer um deles falha o lint com uma mensagem explicando o porquê.
 
-To learn more about Next.js, take a look at the following resources:
+Consequência prática: a lógica de cálculo roda e é testada sem nenhum serviço no ar.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Começando
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Pré-requisitos:** Node 20.9+, [pnpm](https://pnpm.io) 10+ e JDK 21+ (só para o emulador do Firebase).
 
-## Deploy on Vercel
+```bash
+pnpm install
+cp .env.example .env.local   # preencha com a config do seu projeto Firebase
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Nenhum valor do `.env.example` é segredo — a `apiKey` do Firebase Web é um identificador de roteamento, não uma credencial. Quem defende os dados é o Auth somado às Security Rules.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O dia a dia roda contra o **Emulator Suite**, em dois terminais:
+
+```bash
+pnpm emu    # Firestore + Auth locais (leitura sem custo e sem quota)
+pnpm dev    # http://localhost:3000
+```
+
+Com `NEXT_PUBLIC_USE_EMULATORS=true` no `.env.local`, o SDK aponta para o emulador. Desenvolver assim é a mitigação estrutural para o risco mais real do projeto: um listener vazado gerando leituras faturadas.
+
+## Scripts
+
+| Comando | O que faz |
+| --- | --- |
+| `pnpm dev` | Servidor de desenvolvimento |
+| `pnpm build` | Build de produção (inclui o service worker) |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm lint` | ESLint com `--fix` |
+| `pnpm test` | Testes unitários |
+| `pnpm test:coverage` | Cobertura (100% em `domain/` e `engine/`) |
+| `pnpm test:rules` | Testes das Security Rules contra o emulador |
+| `pnpm emu` | Emulator Suite com import/export de dados |
+| `pnpm palette` | Verifica o contraste de toda a paleta |
+| `pnpm palette:write` | Regenera os tokens de cor no `globals.css` |
+
+## Testes
+
+```bash
+pnpm test && pnpm test:rules
+```
+
+`domain/` e `engine/` exigem **100% de linhas, statements e funções**. É um app de dinheiro: uma linha não testada no rateio é um centavo que some em produção. Entre os casos que precisam continuar passando:
+
+- `allocateByWeights` — property test garantindo `Σ partes === total` para qualquer entrada
+- `cycleFor` e `periodOf` são inversas para todo dia do mês, fevereiro incluído
+- Quitação **não** altera o disponível (o teste que impede contagem dupla)
+- Impacto de renda é a diferença entre dois cálculos completos, nunca uma alíquota sobre o delta
+
+As Security Rules são o gate real de autorização, e **`pnpm test:rules` verde é pré-requisito de todo deploy de rules em produção**.
+
+## Fluxo de contribuição
+
+Este é um projeto pessoal, mas segue as convenções que valem para qualquer repositório:
+
+- **`main` é sempre publicável.** Trabalho novo vive em branch (`feat/…`, `fix/…`, `chore/…`).
+- **Um PR por assunto.** PR que mistura refatoração e feature é PR que ninguém revisa direito.
+- **Antes de abrir o PR:** `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
+- **Mexeu em `firestore.rules`?** `pnpm test:rules` também, e o deploy das rules acompanha o merge.
+- **Mensagem de commit** no imperativo, explicando **por quê** — o *o quê* já está no diff.
+
+## Segurança
+
+- **Nunca** use o prefixo `NEXT_PUBLIC_` em algo que seja segredo. O Next inlina o valor no bundle de qualquer arquivo que referencie a variável, e uma chave de service account publicada assim está comprometida de forma permanente — inclusive em todo build já publicado.
+- O MVP **não tem segredo de servidor**: a autorização inteira vive nas Security Rules, executadas pelo Google.
+- Proteção de rota no cliente é UX, não segurança. Quem remover o guard no devtools vê um shell vazio, porque o Firestore recusa os dados.
+
+Encontrou uma vulnerabilidade? Abra uma issue **sem detalhes de exploração** e o contato é feito em seguida.
+
+## Licença
+
+Sem licença definida. Todos os direitos reservados.
