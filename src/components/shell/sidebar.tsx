@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { FarolLockup } from '@/components/brand/farol-lockup'
 import { FarolMark } from '@/components/brand/farol-mark'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { UserAvatar } from '@/components/shared/user-avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -199,11 +200,7 @@ export function Sidebar({
               collapsed ? 'justify-center' : 'px-1',
             )}
           >
-            <span className="bg-secondary text-secondary-foreground flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
-              {(user?.displayName ?? user?.email ?? '?')
-                .charAt(0)
-                .toUpperCase()}
-            </span>
+            <UserAvatar />
             <span
               className={cn(
                 'text-muted-foreground min-w-0 truncate text-xs',

@@ -8,8 +8,8 @@ import {
   IncomePolicyCard,
 } from '@/components/settings/space-config'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { UserAvatar } from '@/components/shared/user-avatar'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,14 +35,7 @@ export function SettingsScreen() {
         <Group title="Perfil">
           <Card>
             <CardContent className="flex items-center gap-3">
-              <Avatar className="size-11">
-                <AvatarImage src={user?.photoURL ?? undefined} alt="" />
-                <AvatarFallback className="bg-secondary text-secondary-foreground font-semibold">
-                  {(user?.displayName ?? user?.email ?? '?')
-                    .charAt(0)
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar className="size-11" />
               <div className="flex min-w-0 flex-col">
                 <span className="truncate font-medium">
                   {user?.displayName ?? 'Você'}
