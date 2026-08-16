@@ -8,6 +8,7 @@ import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { EmptyBeacon } from '@/components/home/empty-beacon'
 import { MoneyValue } from '@/components/money/money-value'
+import { InstallCard } from '@/components/shell/install-card'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -210,6 +211,9 @@ function LoadedState({ summary }: { summary: MonthSummary }) {
             settledCents={covenant.settledCents}
           />
         ) : null}
+
+        {/* Por último, e só para quem já voltou e já lançou algo. */}
+        <InstallCard />
       </div>
     </div>
   )

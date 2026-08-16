@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation'
 
 import { FarolLockup } from '@/components/brand/farol-lockup'
+import {
+  CycleCard,
+  IncomePolicyCard,
+} from '@/components/settings/space-config'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -66,6 +70,18 @@ export function SettingsScreen() {
             </CardContent>
           </Card>
         </Group>
+
+        {space ? (
+          <>
+            <Group title="Ciclo do mês">
+              <CycleCard config={space.config} />
+            </Group>
+
+            <Group title="Renda variável">
+              <IncomePolicyCard config={space.config} />
+            </Group>
+          </>
+        ) : null}
 
         <Group title="Aparência">
           <ThemeToggle />

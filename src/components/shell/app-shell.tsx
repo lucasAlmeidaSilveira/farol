@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { IncomeImpactSheet } from '@/components/entries/income-impact-sheet'
 import { QuickEntrySheet } from '@/components/entries/quick-entry-sheet'
@@ -33,8 +33,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const { collapsed, toggle } = useSidebarState()
 
-  const [entryOpen, setEntryOpen] = useState(false)
+  /*
+    Atalho do PWA: `/?novo=expense` abre o lançamento já na tela Hoje.
+
+    Lido de `window.location` e não de `useSearchParams()` de propósito — o
+    hook obrigaria estas páginas estáticas a uma fronteira de Suspense só para
+    ler um parâmetro que existe uma única vez, na abertura.
+  */
+  const [deepLink] = useState<'expense' | 'income' | null>(() => {
+    if (typeof window === 'undefined') return null
+    const value = new URLSearchParams(window.location.search).get('novo')
+    return value === 'expense' || value === 'income' ? value : null
+  })
+
+  const [entryOpen, setEntryOpen] = useState(deepLink !== null)
   const [impact, setImpact] = useState<IncomeImpact | null>(null)
+
+  // Limpa o parâmetro para que recarregar a página não reabra o lançamento.
+  useEffect(() => {
+    if (deepLink === null) return
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [deepLink])
 
   const open = useCallback(() => setEntryOpen(true), [])
   const quickEntry = useMemo(() => ({ open }), [open])
@@ -75,6 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <QuickEntrySheet
               open={entryOpen}
               onOpenChange={setEntryOpen}
+              defaultKind={deepLink ?? 'expense'}
               engineInput={input}
               onIncomeRegistered={setImpact}
             />

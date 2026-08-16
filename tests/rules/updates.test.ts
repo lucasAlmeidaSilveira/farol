@@ -300,3 +300,78 @@ describe('apagar', () => {
     await assertSucceeds(deleteDoc(doc(db, 'spaces', SPACE, 'entries', 'e1')))
   })
 })
+
+describe('configuração do espaço', () => {
+  const asOwner = () => env.authenticatedContext(UID).firestore()
+  const spaceRef = (db: ReturnType<typeof asOwner>) =>
+    doc(db, 'spaces', SPACE)
+
+  it('altera o dia de início do ciclo com notação de ponto', async () => {
+    // O caminho REAL do app. Notação de ponto não substitui o mapa inteiro,
+    // e as rules validam o documento já mesclado — se a validação enxergasse
+    // só o patch, `hasOnly` reprovaria por faltarem as outras três chaves.
+    await assertSucceeds(
+      updateDoc(spaceRef(asOwner()), {
+        'config.cycleStart': { type: 'dayOfMonth', day: 5 },
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('alterna a política de renda variável', async () => {
+    await assertSucceeds(
+      updateDoc(spaceRef(asOwner()), {
+        'config.variableIncomePolicy': 'includeForecast',
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('recusa dia de ciclo fora do calendário', async () => {
+    await assertFails(
+      updateDoc(spaceRef(asOwner()), {
+        'config.cycleStart': { type: 'dayOfMonth', day: 32 },
+        updatedAt: serverTimestamp(),
+      }),
+    )
+    await assertFails(
+      updateDoc(spaceRef(asOwner()), {
+        'config.cycleStart': { type: 'dayOfMonth', day: 0 },
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('recusa política inventada', async () => {
+    await assertFails(
+      updateDoc(spaceRef(asOwner()), {
+        'config.variableIncomePolicy': 'tudoQueEuQuero',
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('recusa moeda diferente de BRL e campo desconhecido em config', async () => {
+    await assertFails(
+      updateDoc(spaceRef(asOwner()), {
+        'config.currency': 'USD',
+        updatedAt: serverTimestamp(),
+      }),
+    )
+    await assertFails(
+      updateDoc(spaceRef(asOwner()), {
+        'config.taxaSecreta': 42,
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('estranho não mexe na configuração alheia', async () => {
+    await assertFails(
+      updateDoc(doc(env.authenticatedContext('uid_x').firestore(), 'spaces', SPACE), {
+        'config.variableIncomePolicy': 'includeForecast',
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+})

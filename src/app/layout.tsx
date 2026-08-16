@@ -1,8 +1,10 @@
 import './globals.css'
 
+import { SerwistProvider } from '@serwist/turbopack/react'
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 
+import { OfflineBar } from '@/components/shell/offline-bar'
 import { Providers } from '@/providers/providers'
 
 const inter = Inter({
@@ -47,7 +49,14 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-dvh">
-        <Providers>{children}</Providers>
+        <SerwistProvider swUrl="/serwist/sw.js">
+          <Providers>
+            {/* No topo de tudo, para valer em qualquer rota — inclusive
+                /entrar, onde ficar offline é a única limitação real. */}
+            <OfflineBar />
+            {children}
+          </Providers>
+        </SerwistProvider>
       </body>
     </html>
   )

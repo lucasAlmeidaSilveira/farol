@@ -9,6 +9,7 @@ import { type EntryInput, entryPayload } from '@/data/payloads'
 import { errorMessage } from '@/data/session'
 import type { EntryId } from '@/domain/types'
 import { useSpace } from '@/hooks/space/use-space'
+import { markFirstEntry } from '@/lib/engagement'
 import { useSession } from '@/providers/auth-provider'
 
 export type { EntryInput as NewEntry }
@@ -51,6 +52,11 @@ export function useCreateEntry() {
         // Falta de rede não cai neste ramo — a escrita fica na fila.
         toast.error(errorMessage(error))
       })
+
+      // O primeiro lançamento é metade do critério para oferecer a
+      // instalação — marcado aqui porque é o ponto onde o usuário confiou um
+      // dado real ao app. Ver `lib/engagement`.
+      markFirstEntry()
 
       return { id: reference.id as EntryId }
     },

@@ -25,9 +25,12 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
     ],
+    // Os atalhos apontam para a própria tela Hoje com um parâmetro, e não
+    // para uma rota /novo: o destino do atalho É a Hoje com o lançamento
+    // aberto por cima, então uma rota separada só somaria um redirecionamento.
     shortcuts: [
-      { name: 'Lancei um gasto', url: '/novo?kind=expense' },
-      { name: 'Entrou dinheiro', url: '/novo?kind=income' },
+      { name: 'Lancei um gasto', url: '/?novo=expense' },
+      { name: 'Entrou dinheiro', url: '/?novo=income' },
     ],
   }
 }

@@ -35,17 +35,20 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.85.0",
+    "serwist": "^9.5.12",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
+    "@serwist/turbopack": "^9.5.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "eslint-plugin-simple-import-sort": "^14.0.0",
@@ -62,6 +65,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@firebase/util",
+      "esbuild",
       "protobufjs"
     ]
   }
