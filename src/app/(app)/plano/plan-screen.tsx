@@ -183,6 +183,7 @@ export function PlanScreen() {
 
       <SlackFooter availableCents={summary.totals.availableToSpendCents} />
 
+
       <AddIncomeSheet
         open={addingIncome}
         onOpenChange={setAddingIncome}
