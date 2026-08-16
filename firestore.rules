@@ -1,0 +1,446 @@
+rules_version = '2';
+
+// ============================================================================
+// Farol — regras do Firestore
+//
+// Princípios, em ordem de importância:
+//
+// 1. Negação por padrão. Nada que não case com um `match` explícito é permitido.
+// 2. Isolamento por espaço. TODO acesso a dado financeiro exige um documento de
+//    membro ativo — e a fonte de verdade da associação é a subcoleção
+//    `members`, nunca um array no documento do espaço. Com array, qualquer um
+//    que possa editar o espaço se auto-insere.
+// 3. Dinheiro é SEMPRE inteiro em centavos. `is int` recusa de uma vez string,
+//    float e null — validação impossível se o valor fosse decimal.
+// 4. `hasOnly()` em todo write. Campo desconhecido nega a escrita, o que
+//    bloqueia injeção de campo e o "campo fantasma" que vira bug seis meses
+//    depois.
+// 5. `role` e `status` jamais são graváveis pelo próprio membro.
+//
+// LIMITE IMPORTANTE: as regras NÃO enxergam escritas pendentes do mesmo batch.
+// Por isso a criação de um espaço é feita em escritas sequenciais — ver o
+// comentário em `spaces/{spaceId}/members/{memberUid}`.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------- identidade
+    function isSignedIn() { return request.auth != null; }
+    function isSelf(uid)  { return isSignedIn() && request.auth.uid == uid; }
+
+    function spaceRef(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId);
+    }
+    function memberRef(spaceId, uid) {
+      return /databases/$(database)/documents/spaces/$(spaceId)/members/$(uid);
+    }
+    function myMember(spaceId) {
+      return get(memberRef(spaceId, request.auth.uid)).data;
+    }
+
+    // `exists()` e `get()` no MESMO documento são cacheados dentro da requisição,
+    // então isto custa ~1 leitura por requisição, não por documento retornado.
+    function isMember(spaceId) {
+      return isSignedIn()
+        && exists(memberRef(spaceId, request.auth.uid))
+        && myMember(spaceId).status == 'active';
+    }
+    function isOwner(spaceId) {
+      return isMember(spaceId) && myMember(spaceId).role == 'owner';
+    }
+    function canWrite(spaceId) {
+      return isMember(spaceId) && myMember(spaceId).role != 'viewer';
+    }
+
+    // -------------------------------------------------------- forma e tipos
+    function incoming() { return request.resource.data; }
+
+    function onlyFields(allowed) { return incoming().keys().hasOnly(allowed); }
+    function hasFields(required) { return incoming().keys().hasAll(required); }
+
+    function unchanged(fields) {
+      return !incoming().diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function text(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+    function optionalText(field, max) {
+      return !(field in incoming())
+        || incoming()[field] == null
+        || (incoming()[field] is string && incoming()[field].size() <= max);
+    }
+
+    // DINHEIRO. Teto de R$ 10.000.000,00: acima disso é bug ou abuso.
+    function positiveCents(value) {
+      return value is int && value > 0 && value <= 1000000000;
+    }
+    function nonNegativeCents(value) {
+      return value is int && value >= 0 && value <= 1000000000;
+    }
+    function nonZeroCents(value) {
+      return value is int && value != 0
+        && value >= -1000000000 && value <= 1000000000;
+    }
+    function intBetween(value, min, max) {
+      return value is int && value >= min && value <= max;
+    }
+
+    function isPeriod(value) {
+      return value is string && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])$');
+    }
+    function isLocalDate(value) {
+      return value is string
+        && value.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$');
+    }
+
+    // Coerência data <-> período SEM armadilha de fuso: a fonte da verdade é a
+    // string civil 'AAAA-MM-DD'. Se fosse um timestamp UTC, um gasto de 31/08
+    // às 23h em São Paulo cairia em setembro. `periodIsManual` cobre o caso
+    // legítimo de "comprei dia 28 mas quero contar no mês que vem".
+    function periodMatchesDate() {
+      return incoming().periodIsManual == true
+        || incoming().date.matches('^' + incoming().period + '-[0-9]{2}$');
+    }
+
+    // serverTimestamp() é resolvido para request.time durante a avaliação.
+    /*
+      ATENÇÃO: `stampedNow()` só vale em CREATE.
+      Numa atualização, `createdAt` é o carimbo original e nunca vai ser igual a
+      `request.time` — colocar isto num validador compartilhado entre create e
+      update faz TODA edição ser negada com permission-denied. Em update o que
+      se usa é `unchanged(['createdAt'])`.
+    */
+    function stampedNow()   { return incoming().createdAt == request.time; }
+    function authoredByMe() { return incoming().createdBy == request.auth.uid; }
+
+    // ========================================================= /users/{uid}
+    match /users/{uid} {
+      allow get: if isSelf(uid);
+      allow list: if false; // nunca varrer a coleção de usuários
+
+      allow create: if isSelf(uid)
+        && onlyFields(['name', 'email', 'photoUrl', 'activeSpaceId',
+                       'createdAt', 'updatedAt'])
+        && hasFields(['name', 'createdAt'])
+        && text(incoming().name, 120)
+        && optionalText('email', 254)
+        && optionalText('photoUrl', 500)
+        && stampedNow()
+        // Não dá para "apontar" para um espaço do qual você não participa.
+        && (!('activeSpaceId' in incoming())
+            || incoming().activeSpaceId == null
+            || isMember(incoming().activeSpaceId));
+
+      allow update: if isSelf(uid)
+        && onlyFields(['name', 'email', 'photoUrl', 'activeSpaceId',
+                       'createdAt', 'updatedAt'])
+        && unchanged(['createdAt'])
+        && text(incoming().name, 120)
+        && (!('activeSpaceId' in incoming())
+            || incoming().activeSpaceId == null
+            || isMember(incoming().activeSpaceId));
+
+      // Exclusão de conta é um fluxo controlado, não um delete solto.
+      allow delete: if false;
+    }
+
+    // ==================================================== /spaces/{spaceId}
+    function validSpaceConfig() {
+      return incoming().config is map
+        && incoming().config.keys().hasOnly(
+             ['cycleStart', 'variableIncomePolicy', 'timeZone', 'currency'])
+        && incoming().config.cycleStart is map
+        && incoming().config.cycleStart.type == 'dayOfMonth'
+        && intBetween(incoming().config.cycleStart.day, 1, 31)
+        && incoming().config.variableIncomePolicy
+             in ['confirmedOnly', 'includeForecast']
+        && incoming().config.currency == 'BRL'
+        && text(incoming().config.timeZone, 64);
+    }
+
+    function validSpace() {
+      return onlyFields(['name', 'config', 'createdBy', 'createdAt', 'updatedAt'])
+        && hasFields(['name', 'config', 'createdBy', 'createdAt'])
+        && text(incoming().name, 60)
+        && validSpaceConfig();
+    }
+
+    match /spaces/{spaceId} {
+      allow get: if isMember(spaceId);
+      allow list: if false; // a descoberta é via collection group /members
+
+      allow create: if isSignedIn() && validSpace()
+        && authoredByMe() && stampedNow();
+
+      allow update: if canWrite(spaceId) && validSpace()
+        && unchanged(['createdBy', 'createdAt']);
+
+      allow delete: if isOwner(spaceId);
+
+      // ------------------------------------------------------------ members
+      function memberFields() {
+        return ['uid', 'spaceId', 'role', 'status', 'name', 'email', 'photoUrl',
+                'invitedBy', 'inviteToken', 'createdAt', 'updatedAt'];
+      }
+      function validMemberShape(memberUid) {
+        return onlyFields(memberFields())
+          && hasFields(['uid', 'spaceId', 'role', 'status', 'name', 'createdAt'])
+          && incoming().uid == memberUid       // doc id e campo não podem divergir
+          && incoming().spaceId == spaceId
+          && incoming().role in ['owner', 'member', 'viewer']
+          && incoming().status in ['active', 'invited', 'suspended']
+          && text(incoming().name, 120)
+          && optionalText('email', 254)
+          && optionalText('photoUrl', 500);
+      }
+
+      match /members/{memberUid} {
+        allow read: if isMember(spaceId);
+
+        // (A) BOOTSTRAP — quem criou o espaço vira dono.
+        //
+        // Repare que isto exige o espaço JÁ COMMITADO. É exatamente por isso
+        // que a criação NÃO pode ser um writeBatch: as regras não enxergam
+        // escritas pendentes do mesmo lote, o `get()` abaixo não acharia nada,
+        // e o batch inteiro falharia. A criação é sequencial:
+        //   1. spaces/{id}  ->  2. members/{uid}  ->  3. users/{uid}.activeSpaceId
+        allow create: if isSelf(memberUid)
+          && exists(spaceRef(spaceId))
+          && get(spaceRef(spaceId)).data.createdBy == request.auth.uid
+          && incoming().role == 'owner'
+          && incoming().status == 'active'
+          && validMemberShape(memberUid)
+          && stampedNow();
+
+        // (B) O dono adiciona alguém diretamente (fase 2, casal).
+        allow create: if isOwner(spaceId)
+          && memberUid != request.auth.uid
+          && incoming().role in ['member', 'viewer']
+          && validMemberShape(memberUid)
+          && stampedNow();
+
+        // ---- UPDATE: é aqui que mora o escalonamento de privilégio ----
+        allow update:
+          // (1) EU no MEU documento: só o que é cosmético.
+          //     Esta linha é o que impede `update(meuDoc, { role: 'owner' })`.
+          if (isSelf(memberUid)
+              && isMember(spaceId)
+              && onlyFields(memberFields())
+              && unchanged(['uid', 'spaceId', 'role', 'status', 'createdAt',
+                            'invitedBy', 'inviteToken'])
+              && text(incoming().name, 120))
+          // (2) O DONO no documento dos OUTROS: pode promover e suspender.
+          //     O `!=` impede o dono de se auto-rebaixar e deixar o espaço
+          //     órfão de administrador.
+          || (isOwner(spaceId)
+              && memberUid != request.auth.uid
+              && onlyFields(memberFields())
+              && incoming().role in ['owner', 'member', 'viewer']
+              && incoming().status in ['active', 'invited', 'suspended']
+              && unchanged(['uid', 'spaceId', 'createdAt']));
+
+        allow delete: if isOwner(spaceId) && memberUid != request.auth.uid;
+      }
+
+      // ------------------------------------------------------- incomeSources
+      function validIncomeSource() {
+        return onlyFields(['name', 'kind', 'forecastCents', 'confidence',
+                           'recurrence', 'expectedDay', 'memberId', 'archivedAt',
+                           'createdAt', 'updatedAt'])
+          && hasFields(['name', 'kind', 'forecastCents', 'confidence',
+                        'createdAt'])
+          && text(incoming().name, 80)
+          && incoming().kind in ['fixed', 'variable']
+          && nonNegativeCents(incoming().forecastCents)
+          && incoming().confidence in ['exact', 'estimated']
+          && (!('expectedDay' in incoming())
+              || incoming().expectedDay == null
+              || intBetween(incoming().expectedDay, 1, 31));
+      }
+
+      match /incomeSources/{sourceId} {
+        allow read: if isMember(spaceId);
+        allow create: if canWrite(spaceId) && validIncomeSource() && stampedNow();
+        allow update: if canWrite(spaceId) && validIncomeSource()
+          && unchanged(['createdAt']);
+        allow delete: if canWrite(spaceId);
+      }
+
+      // --------------------------------------------------------- commitments
+      function validCommitmentCommon() {
+        return text(incoming().name, 80)
+          && optionalText('description', 280)
+          && intBetween(incoming().order, 0, 999)
+          // Vencimento é opcional, e as duas formas são EXCLUDENTES: dia do
+          // calendário ou N-ésimo dia útil, nunca as duas.
+          && (!('dueDay' in incoming()) || incoming().dueDay == null
+              || intBetween(incoming().dueDay, 1, 31))
+          && (!('dueBusinessDay' in incoming()) || incoming().dueBusinessDay == null
+              || intBetween(incoming().dueBusinessDay, 1, 23))
+          && !(incoming().get('dueDay', null) != null
+               && incoming().get('dueBusinessDay', null) != null)
+          && incoming().preset in ['covenant', 'tithe', 'payYourselfFirst',
+                                   'socialSecurity', 'alimony', 'custom']
+          && incoming().recurrence is map;
+      }
+
+      function validCommitment() {
+        return onlyFields(['type', 'name', 'description', 'order', 'recurrence',
+                           'preset', 'memberId', 'archivedAt', 'createdAt',
+                           'updatedAt', 'dueDay', 'dueBusinessDay',
+                           'amountCents',
+                           'base', 'parts', 'floorCents', 'ceilingCents',
+                           'targetCents', 'targetPeriod', 'minContributionCents'])
+          && hasFields(['type', 'name', 'order', 'recurrence', 'preset',
+                        'createdAt'])
+          && validCommitmentCommon()
+          && (
+            (incoming().type == 'fixedAmount'
+              && nonNegativeCents(incoming().amountCents))
+            ||
+            (incoming().type == 'proportional'
+              && incoming().base is map
+              && incoming().base.includeFixed is bool
+              && incoming().base.includeVariable is bool
+              && (incoming().base.includeFixed == true
+                  || incoming().base.includeVariable == true)
+              && incoming().parts is list
+              && incoming().parts.size() >= 1
+              && incoming().parts.size() <= 10)
+            ||
+            (incoming().type == 'savingsGoal'
+              && positiveCents(incoming().targetCents)
+              && isPeriod(incoming().targetPeriod))
+          );
+      }
+
+      match /commitments/{commitmentId} {
+        allow read: if isMember(spaceId);
+        allow create: if canWrite(spaceId) && validCommitment() && stampedNow();
+        allow update: if canWrite(spaceId) && validCommitment()
+          && unchanged(['createdAt']);
+        allow delete: if canWrite(spaceId);
+      }
+
+      // ---------------------------------------------------------- categories
+      match /categories/{categoryId} {
+        allow read: if isMember(spaceId);
+        allow write: if canWrite(spaceId)
+          && onlyFields(['name', 'color', 'essential', 'archivedAt'])
+          && text(incoming().name, 80)
+          && incoming().color.matches('^#[0-9a-fA-F]{6}$')
+          && incoming().essential is bool;
+      }
+
+      // ------------------------------------------------------------- entries
+      function validEntryCommon() {
+        return hasFields(['kind', 'period', 'periodIsManual', 'date',
+                          'amountCents', 'description', 'createdBy', 'createdAt'])
+          && isPeriod(incoming().period)
+          && isLocalDate(incoming().date)
+          && incoming().periodIsManual is bool
+          && periodMatchesDate()
+          && incoming().description is string
+          && incoming().description.size() <= 140
+          && authoredByMe();
+      }
+
+      function validEntry() {
+        return onlyFields(['kind', 'period', 'periodIsManual', 'date',
+                           'amountCents', 'description', 'memberId', 'createdBy',
+                           'createdAt', 'updatedAt',
+                           'sourceId', 'closesForecast',
+                           'categoryId',
+                           'commitmentId', 'partId'])
+          && validEntryCommon()
+          && (
+            // Renda nunca é negativa: entrada errada se apaga, não se estorna.
+            (incoming().kind == 'income'
+              && positiveCents(incoming().amountCents)
+              && incoming().closesForecast is bool)
+            ||
+            // Gasto aceita negativo (estorno ou reembolso), mas nunca zero.
+            (incoming().kind == 'expense'
+              && nonZeroCents(incoming().amountCents))
+            ||
+            (incoming().kind == 'settlement'
+              && nonZeroCents(incoming().amountCents)
+              && text(incoming().commitmentId, 64))
+          );
+      }
+
+      match /entries/{entryId} {
+        allow read: if isMember(spaceId);
+        allow create: if canWrite(spaceId) && validEntry() && stampedNow();
+        allow update: if canWrite(spaceId) && validEntry()
+          && unchanged(['createdBy', 'createdAt']);
+        allow delete: if canWrite(spaceId);
+      }
+
+      // ------------------------------------------------------------- periods
+      // Ajustes e fechamento do mês. Os totais agregados NÃO são escritos no
+      // MVP — a engine recalcula em memória, e um agregado gravado seria uma
+      // segunda fonte de verdade capaz de divergir.
+      match /periods/{periodId} {
+        allow read: if isMember(spaceId);
+        allow write: if canWrite(spaceId)
+          && isPeriod(periodId)
+          && onlyFields(['period', 'status', 'incomeSourceOverrides',
+                         'commitmentOverrides', 'close', 'createdAt', 'updatedAt'])
+          && incoming().period == periodId
+          && incoming().status in ['open', 'closed']
+          && incoming().incomeSourceOverrides is map
+          && incoming().commitmentOverrides is map;
+      }
+    }
+
+    // ============================================ collection group: members
+    // Habilita `collectionGroup('members').where('uid','==',meuUid)` para
+    // listar os espaços de que participo. Só devolve o MEU documento, então
+    // não amplia acesso nenhum.
+    match /{path=**}/members/{memberUid} {
+      allow read: if isSelf(memberUid);
+    }
+
+    // ==================================================== /invites/{token}
+    // Fase 2 (casal). O token É o segredo: quem tem o link lê o nome do espaço
+    // e o e-mail convidado — PII mínima, com expiração curta.
+    match /invites/{token} {
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && isOwner(incoming().spaceId)
+        && onlyFields(['spaceId', 'spaceName', 'invitedEmail', 'role', 'status',
+                       'createdBy', 'createdAt', 'expiresAt'])
+        && hasFields(['spaceId', 'spaceName', 'invitedEmail', 'status',
+                      'createdBy', 'createdAt', 'expiresAt'])
+        && incoming().status == 'pending'
+        && incoming().role in ['member', 'viewer']
+        && text(incoming().invitedEmail, 254)
+        && authoredByMe() && stampedNow()
+        && incoming().expiresAt is timestamp
+        && incoming().expiresAt > request.time;
+
+      allow update: if isSignedIn()
+        && unchanged(['spaceId', 'invitedEmail', 'createdBy', 'createdAt'])
+        && (
+          (incoming().status == 'accepted'
+            && resource.data.status == 'pending'
+            && resource.data.invitedEmail == request.auth.token.email
+            && resource.data.expiresAt > request.time)
+          || (isOwner(resource.data.spaceId) && incoming().status == 'revoked')
+        );
+
+      allow delete: if isOwner(resource.data.spaceId);
+    }
+
+    // Deny-all explícito. É documental, não funcional (as regras são OR e este
+    // match não revoga os de cima) — está aqui para a intenção ficar no código.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

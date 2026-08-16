@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Versão `maskable` para Android.
+
+    O sistema pode recortar o ícone em círculo, squircle ou gota, cortando até
+    40% da área. Por isso o fundo sangra até a borda e o símbolo encolhe para
+    44% — ele precisa caber inteiro na zona segura, seja qual for a máscara.
+  -->
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0E3A2E" />
+      <stop offset="100%" stop-color="#07231C" />
+    </linearGradient>
+    <radialGradient id="halo" cx="0.56" cy="0.38" r="0.36">
+      <stop offset="0%" stop-color="#4FD6A0" stop-opacity="0.2" />
+      <stop offset="55%" stop-color="#4FD6A0" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#4FD6A0" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#night)" />
+  <rect width="512" height="512" fill="url(#halo)" />
+
+  <!--
+    Sem o horizonte, a arte ocupa x 4,5..21 e y 3..21.
+    escala = (0,44 x 512) / 18 = 12,516
+    centro da arte = (12,75 · 12) x 12,516 = (159,6 · 150,2)
+    alvo = centro exato (256 · 256), porque a máscara recorta radialmente
+    translate = (96,4 · 105,8)
+  -->
+  <g transform="translate(96.4 105.8) scale(12.516)">
+    <path d="M5.5 3H9L10 20Q10 21 9 21H5.5Q4.5 21 4.5 20Z" fill="#EAF6F0" />
+    <path
+      d="M11.5 5H19.5A1.5 1.5 0 0 1 19.5 8H11.5A0.5 0.5 0 0 1 11 7.5V5.5A0.5 0.5 0 0 1 11.5 5Z"
+      fill="#F0B63A"
+    />
+    <path
+      d="M11.5 10.5H16A1.25 1.25 0 0 1 16 13H11.5A0.5 0.5 0 0 1 11 12.5V11A0.5 0.5 0 0 1 11.5 10.5Z"
+      fill="#F5C55E"
+    />
+  </g>
+</svg>

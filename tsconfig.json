@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    // O algoritmo de rateio indexa arrays por posição. Sem isto, um índice
+    // fora do range vira `undefined` silencioso dentro de uma conta de dinheiro.
+    "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -19,7 +22,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "~tests/*": ["./tests/*"]
     }
   },
   "include": [

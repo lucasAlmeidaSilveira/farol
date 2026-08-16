@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "farol-app-dev",
+    "dev": "farol-app-dev",
+    "prod": "farol-app-prod"
+  }
+}

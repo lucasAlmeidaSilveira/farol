@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!--
+    Favicon em grid dedicado 16x16, alinhado ao pixel inteiro.
+
+    A 16px, 1 unidade do grid 24 vale 0,67px: tudo abaixo de ~1,5 unidade
+    simplesmente some. Por isso esta versão remove o feixe menor, o horizonte,
+    o halo e o afunilamento da torre — o que sobra é o contraste que ainda lê.
+  -->
+  <style>
+    .tower { fill: #0E2E26 }
+    .beam  { fill: #A8760A }
+    @media (prefers-color-scheme: dark) {
+      .tower { fill: #DFEDE7 }
+      .beam  { fill: #F0B63A }
+    }
+  </style>
+  <rect class="tower" x="3" y="2" width="4" height="12" rx="0.5" />
+  <rect class="beam" x="8" y="4" width="6" height="4" rx="1.5" />
+</svg>

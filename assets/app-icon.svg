@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Ícone do app. Fonte para os PNGs em public/icons/ — gerados por
+    `pnpm icons`. Símbolo a 56% da largura, com halo âmbar no topo dos feixes.
+  -->
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0E3A2E" />
+      <stop offset="100%" stop-color="#07231C" />
+    </linearGradient>
+    <radialGradient id="halo" cx="0.58" cy="0.34" r="0.42">
+      <stop offset="0%" stop-color="#4FD6A0" stop-opacity="0.22" />
+      <stop offset="55%" stop-color="#4FD6A0" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#4FD6A0" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#night)" />
+  <rect width="512" height="512" fill="url(#halo)" />
+
+  <!--
+    A arte ocupa x 2..21 e y 3..22,5 do grid de 24 — não o grid inteiro. O
+    enquadramento é calculado sobre ESSA caixa, senão o símbolo sai menor que o
+    especificado e descentralizado.
+
+    escala = (0,56 x 512) / 19,5 (altura da arte) = 14,704
+    centro da arte = (11,5 · 12,75) x 14,704 = (169,1 · 187,5)
+    alvo = (256 · 248), levemente acima do centro geométrico por equilíbrio óptico
+    translate = (86,9 · 60,5)
+  -->
+  <g transform="translate(86.9 60.5) scale(14.704)">
+    <path d="M5.5 3H9L10 20Q10 21 9 21H5.5Q4.5 21 4.5 20Z" fill="#EAF6F0" />
+    <path
+      d="M11.5 5H19.5A1.5 1.5 0 0 1 19.5 8H11.5A0.5 0.5 0 0 1 11 7.5V5.5A0.5 0.5 0 0 1 11.5 5Z"
+      fill="#F0B63A"
+    />
+    <path
+      d="M11.5 10.5H16A1.25 1.25 0 0 1 16 13H11.5A0.5 0.5 0 0 1 11 12.5V11A0.5 0.5 0 0 1 11.5 10.5Z"
+      fill="#F5C55E"
+    />
+    <rect x="2" y="21" width="20" height="1.5" rx="0.75" fill="#2C5A48" />
+  </g>
+</svg>

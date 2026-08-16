@@ -1,1 +1,371 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Design system do Farol.
+
+  A paleta é verde-dinheiro sobre neutros claros e quentes, e cada escolha
+  responde a uma pergunta de psicologia, não de estética:
+
+  - VERDE é o gatilho central. "Estar no verde" é literalmente a sensação que o
+    app existe para dar, então o número principal é verde, grande e o primeiro
+    elemento que a pessoa vê.
+  - OURO é a luz do farol, reservada ao compromisso proporcional e à ação
+    primária. Escasso de propósito: ouro em tudo deixa de significar alguma
+    coisa.
+  - TERRACOTA no lugar de vermelho. Para quem já se sente mal com dinheiro,
+    vermelho é punição — terracota chama atenção sem envergonhar.
+  - NEUTROS QUENTES, com um traço de verde, em vez de cinza puro. Planilha é
+    fria, e frieza é exatamente o que afasta esse público.
+
+  Todos os pares abaixo foram CALCULADOS, não estimados: rode `pnpm contrast`
+  antes de mexer em qualquer valor. Âmbar sobre branco parece legível ao olho e
+  reprova em 1.9:1 — é por isso que o script existe.
+*/
+
+/* >>> tokens gerados por `pnpm palette:write` — não edite à mão */
+:root {
+  /* TEMA CLARO */
+  --background: #f4f9f6;
+  --card: #ffffff;
+  --foreground: #0b2620; /* 15.03:1 sobre background — AAA */
+  --muted: #e5efea;
+  --muted-foreground: #33544a; /* 8.37:1 sobre card — AAA */
+  --border: #78988a; /* 3.15:1 sobre card — UI */
+  --input: #4f6e64; /* 5.60:1 sobre card — AA */
+  --ring: #075940; /* 7.85:1 sobre background — AAA */
+  --primary: #075940;
+  --primary-foreground: #ffffff; /* 8.36:1 sobre primary — AAA */
+  --secondary: #e5efea;
+  --secondary-foreground: #08402f; /* 10.01:1 sobre secondary — AAA */
+  --accent: #f0b93f;
+  --accent-foreground: #241900; /* 9.65:1 sobre accent — AAA */
+  --accent-border: #6e4c05; /* 7.78:1 sobre card — AAA */
+  --positive: #066143; /* 7.50:1 sobre card — AAA */
+  --positive-soft: #dcf0e6;
+  --positive-soft-foreground: #054a34; /* 8.67:1 sobre positive-soft — AAA */
+  --negative: #8f3218; /* 7.96:1 sobre card — AAA */
+  --negative-soft: #fae7e0;
+  --negative-soft-foreground: #6e2411; /* 9.14:1 sobre negative-soft — AAA */
+  --covenant: #664804; /* 8.42:1 sobre card — AAA */
+  --covenant-soft: #fbf0d8;
+  --covenant-soft-foreground: #5a3f03; /* 8.64:1 sobre covenant-soft — AAA */
+  --beacon: #dff1e8;
+  --beacon-foreground: #0b2620; /* 13.63:1 sobre beacon — AAA */
+  --beacon-muted: #33544a; /* 7.13:1 sobre beacon — AAA */
+  --beacon-track: #bbdccc;
+  --light: #064a34; /* 8.78:1 sobre beacon — AAA */
+  --light-dim: #066143;
+  --light-out: #8a3016; /* 7.11:1 sobre beacon — AAA */
+  --slice-covenant: #7a5605; /* 5.66:1 sobre beacon — AA */
+  --slice-fixed: #16536f; /* 7.15:1 sobre beacon — AAA */
+  --slice-goal: #3a5f25; /* 6.29:1 sobre beacon — AA */
+  --slice-spent: #48594f; /* 6.35:1 sobre beacon — AA */
+  --slice-free: #066143; /* 6.39:1 sobre beacon — AA */
+  --card-foreground: #0b2620; /* 16.00:1 sobre card — AAA */
+  --popover: #ffffff;
+  --popover-foreground: #0b2620; /* 16.00:1 sobre popover — AAA */
+  --destructive: #8f3218;
+  --destructive-foreground: #ffffff; /* 7.96:1 sobre destructive — AAA */
+  --brand-tower: #0b2620; /* 15.03:1 sobre background — AAA */
+  --brand-beam: #6e4c05; /* 7.31:1 sobre background — AAA */
+  --brand-beam-soft: #8a5f0a; /* 5.30:1 sobre background — AA */
+  --brand-unlit: #4f6e64; /* 5.27:1 sobre background — AA */
+}
+
+.dark {
+  /* TEMA ESCURO */
+  --background: #061b16;
+  --card: #0c261f;
+  --foreground: #e7f2ec; /* 15.57:1 sobre background — AAA */
+  --muted: #12332a;
+  --muted-foreground: #a8c6bb; /* 8.73:1 sobre card — AAA */
+  --border: #4e7566; /* 3.09:1 sobre card — UI */
+  --input: #7ba394; /* 5.72:1 sobre card — AA */
+  --ring: #6fe3b5; /* 11.33:1 sobre background — AAA */
+  --primary: #6fe3b5;
+  --primary-foreground: #052018; /* 10.87:1 sobre primary — AAA */
+  --secondary: #12332a;
+  --secondary-foreground: #e7f2ec; /* 11.95:1 sobre secondary — AAA */
+  --accent: #f5c660;
+  --accent-foreground: #2a1d00; /* 10.30:1 sobre accent — AAA */
+  --accent-border: transparent;
+  --positive: #6fe3b5; /* 10.16:1 sobre card — AAA */
+  --positive-soft: #0a2e23;
+  --positive-soft-foreground: #9cf0ce; /* 11.04:1 sobre positive-soft — AAA */
+  --negative: #ffae8d; /* 8.91:1 sobre card — AAA */
+  --negative-soft: #2e1108;
+  --negative-soft-foreground: #ffcdb8; /* 12.23:1 sobre negative-soft — AAA */
+  --covenant: #f7d183; /* 10.97:1 sobre card — AAA */
+  --covenant-soft: #2a1f07;
+  --covenant-soft-foreground: #f7d183; /* 11.10:1 sobre covenant-soft — AAA */
+  --beacon: #0a2620;
+  --beacon-foreground: #e7f2ec; /* 13.97:1 sobre beacon — AAA */
+  --beacon-muted: #a8c6bb; /* 8.74:1 sobre beacon — AAA */
+  --beacon-track: #193e32;
+  --light: #7dedc0; /* 11.25:1 sobre beacon — AAA */
+  --light-dim: #6fe3b5;
+  --light-out: #ffae8d; /* 8.92:1 sobre beacon — AAA */
+  --slice-covenant: #f5c660; /* 10.01:1 sobre beacon — AAA */
+  --slice-fixed: #84c7e8; /* 8.63:1 sobre beacon — AAA */
+  --slice-goal: #aedd82; /* 10.27:1 sobre beacon — AAA */
+  --slice-spent: #9bb5ab; /* 7.32:1 sobre beacon — AAA */
+  --slice-free: #7dedc0; /* 11.25:1 sobre beacon — AAA */
+  --card-foreground: #e7f2ec; /* 13.95:1 sobre card — AAA */
+  --popover: #0c261f;
+  --popover-foreground: #e7f2ec; /* 13.95:1 sobre popover — AAA */
+  --destructive: #ffae8d;
+  --destructive-foreground: #2e1108; /* 9.74:1 sobre destructive — AAA */
+  --brand-tower: #e7f2ec; /* 15.57:1 sobre background — AAA */
+  --brand-beam: #f5c660; /* 11.16:1 sobre background — AAA */
+  --brand-beam-soft: #f7d183; /* 12.25:1 sobre background — AAA */
+  --brand-unlit: #7ba394; /* 6.38:1 sobre background — AA */
+}
+/* <<< fim dos tokens gerados */
+
+:root {
+  /* Não são cores, então ficam fora do bloco gerado. */
+  --radius: 0.875rem;
+  --gutter: 1.25rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-border: var(--accent-border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-beacon: var(--beacon);
+  --color-beacon-foreground: var(--beacon-foreground);
+  --color-beacon-muted: var(--beacon-muted);
+  --color-beacon-track: var(--beacon-track);
+  --color-light: var(--light);
+  --color-light-dim: var(--light-dim);
+  --color-light-out: var(--light-out);
+
+  --color-positive: var(--positive);
+  --color-positive-foreground: var(--positive-foreground);
+  --color-positive-soft: var(--positive-soft);
+  --color-positive-soft-foreground: var(--positive-soft-foreground);
+  --color-negative: var(--negative);
+  --color-negative-foreground: var(--negative-foreground);
+  --color-negative-soft: var(--negative-soft);
+  --color-negative-soft-foreground: var(--negative-soft-foreground);
+  --color-covenant: var(--covenant);
+  --color-covenant-soft: var(--covenant-soft);
+  --color-covenant-soft-foreground: var(--covenant-soft-foreground);
+
+  --color-slice-covenant: var(--slice-covenant);
+  --color-slice-fixed: var(--slice-fixed);
+  --color-slice-goal: var(--slice-goal);
+  --color-slice-spent: var(--slice-spent);
+  --color-slice-free: var(--slice-free);
+
+  --radius-sm: calc(var(--radius) - 6px); /* 8px */
+  --radius-md: calc(var(--radius) - 4px); /* 10px */
+  --radius-lg: var(--radius); /* 14px — cards */
+  --radius-xl: calc(var(--radius) + 6px); /* 20px — sheets */
+  --radius-2xl: calc(var(--radius) + 14px); /* 28px — BeaconCard */
+
+  /* Sombras tingidas de verde-escuro, nunca preto puro. */
+  --shadow-xs: 0 1px 2px 0 rgb(14 46 38 / 0.05);
+  --shadow-sm:
+    0 1px 3px 0 rgb(14 46 38 / 0.07), 0 1px 2px -1px rgb(14 46 38 / 0.05);
+  --shadow-md:
+    0 4px 12px -2px rgb(14 46 38 / 0.09), 0 2px 6px -2px rgb(14 46 38 / 0.05);
+  --shadow-lg: 0 12px 28px -6px rgb(14 46 38 / 0.14);
+  /* O brilho do farol vazando por baixo do card principal. */
+  --shadow-beam: 0 18px 44px -16px rgb(10 122 86 / 0.28);
+
+  --text-hero: 3.5rem;
+  --text-hero--line-height: 1;
+  --text-hero--letter-spacing: -0.03em;
+  --text-hero--font-weight: 700;
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.08em;
+  --text-eyebrow--font-weight: 600;
+}
+
+/*
+  TODO número financeiro passa por aqui. Sem exceção.
+
+  Sem `tabular-nums`, o dígito 1 é mais estreito que os outros e a coluna
+  "dança" quando o valor atualiza em tempo real — exatamente o oposto do que um
+  número confiável deve parecer.
+*/
+@utility money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/*
+  Padrões das fatias do rateio.
+
+  Cores próximas em luminância não se distinguem para quem não percebe matiz.
+  A separação real vem de três camadas independentes: o gap de 2px na cor do
+  fundo, o padrão próprio de cada fatia, e a forma diferente do marcador na
+  legenda. Qualquer uma das três, sozinha, já comunica.
+*/
+@utility slice-stripe {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 4px,
+    rgb(255 255 255 / 0.45) 4px 8px
+  );
+}
+
+@utility slice-dot {
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.5) 1.2px,
+    transparent 1.2px
+  );
+  background-size: 6px 6px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Mata o pull-to-refresh acidental sobre o card do número principal. */
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* O shadcn cobre os controles; isto cobre todo o resto. */
+  :focus-visible {
+    @apply ring-ring ring-2 ring-offset-2 outline-none;
+    --tw-ring-offset-color: var(--background);
+  }
+
+  ::selection {
+    background-color: var(--positive-soft);
+    color: var(--positive-soft-foreground);
+  }
+}
+
+/*
+  Movimento.
+
+  A régua aqui é uma só: a animação existe para EXPLICAR o que aconteceu, nunca
+  para enfeitar. Um card que sobe 8px ao aparecer diz "isto é novo"; um número
+  que corre de um valor a outro diz "isto mudou por causa do que você acabou de
+  fazer". Qualquer movimento que não responda a uma dessas duas perguntas é
+  ruído — e num app de dinheiro, ruído lê como instabilidade.
+
+  Durações curtas de propósito: 150ms para reação a toque, 250ms para entrada de
+  elemento, 600ms só para o contador do impacto de renda, que é o único momento
+  em que a animação É a informação.
+*/
+
+@keyframes farol-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes farol-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes farol-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes farol-pulse-soft {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@utility animate-rise {
+  animation: farol-rise 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-fade {
+  animation: farol-fade-in 200ms ease-out both;
+}
+
+/* Entrada em cascata: cada filho entra 40ms depois do anterior, no máximo 6.
+   Acima disso a espera passa a ser percebida como lentidão. */
+@utility stagger {
+  & > * {
+    animation: farol-rise 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  & > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  & > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  & > *:nth-child(5) {
+    animation-delay: 160ms;
+  }
+  & > *:nth-child(n + 6) {
+    animation-delay: 200ms;
+  }
+}
+
+@layer base {
+  /* Sheets do Radix. */
+  [data-state='open'][data-slot='sheet-overlay'] {
+    animation: farol-fade-in 200ms ease-out;
+  }
+  [data-state='open'][data-slot='sheet-content'] {
+    animation: farol-slide-up 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /*
+    O corte total para quem pediu menos movimento.
+
+    Não é uma cortesia: para parte das pessoas, animação de tela causa enjoo e
+    dor de cabeça de verdade. Aqui tudo vira instantâneo, e o app continua
+    inteiro — nenhuma informação depende exclusivamente do movimento.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
