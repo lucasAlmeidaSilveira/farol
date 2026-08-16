@@ -71,23 +71,19 @@ Consequência prática: a lógica de cálculo roda e é testada sem nenhum servi
 
 ## Começando
 
-**Pré-requisitos:** Node 20.9+, [pnpm](https://pnpm.io) 10+ e JDK 21+ (só para o emulador do Firebase).
+**Pré-requisitos:** Node 20.9+ e [pnpm](https://pnpm.io) 10+. JDK 21+ só é necessário para rodar `pnpm test:rules`.
 
 ```bash
 pnpm install
 cp .env.example .env.local   # preencha com a config do seu projeto Firebase
+pnpm dev                     # http://localhost:3000
 ```
 
 Nenhum valor do `.env.example` é segredo — a `apiKey` do Firebase Web é um identificador de roteamento, não uma credencial. Quem defende os dados é o Auth somado às Security Rules.
 
-O dia a dia roda contra o **Emulator Suite**, em dois terminais:
+O desenvolvimento roda contra o projeto **`farol-app-dev`**, na nuvem. São dois projetos Firebase separados, e é essa separação que garante que nada de teste encoste em dado financeiro real: mesmo entrando com a mesma conta Google nos dois, o UID é diferente por projeto, e todo dado do Farol pertence a um `Space` alcançado via `members/{uid}`.
 
-```bash
-pnpm emu    # Firestore + Auth locais (leitura sem custo e sem quota)
-pnpm dev    # http://localhost:3000
-```
-
-Com `NEXT_PUBLIC_USE_EMULATORS=true` no `.env.local`, o SDK aponta para o emulador. Desenvolver assim é a mitigação estrutural para o risco mais real do projeto: um listener vazado gerando leituras faturadas.
+Uma sessão fria do app faz ~90 leituras, contra as 50.000/dia do plano gratuito — mais de 100× de folga. **Custo aqui não é problema de arquitetura, é sintoma de bug**, e o suspeito de sempre é listener duplicado; o registry com contagem de referências em `src/data/subscription.ts` existe justamente para isso.
 
 ## Scripts
 
@@ -99,8 +95,7 @@ Com `NEXT_PUBLIC_USE_EMULATORS=true` no `.env.local`, o SDK aponta para o emulad
 | `pnpm lint` | ESLint com `--fix` |
 | `pnpm test` | Testes unitários |
 | `pnpm test:coverage` | Cobertura (100% em `domain/` e `engine/`) |
-| `pnpm test:rules` | Testes das Security Rules contra o emulador |
-| `pnpm emu` | Emulator Suite com import/export de dados |
+| `pnpm test:rules` | Testes das Security Rules (sobe e derruba o emulador sozinho) |
 | `pnpm palette` | Verifica o contraste de toda a paleta |
 | `pnpm palette:write` | Regenera os tokens de cor no `globals.css` |
 

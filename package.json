@@ -13,7 +13,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:rules": "PATH=\"$(brew --prefix openjdk@21)/bin:$PATH\" firebase emulators:exec --project=farol-test --only firestore \"vitest run --config vitest.rules.config.mts\"",
-    "emu": "PATH=\"$(brew --prefix openjdk@21)/bin:$PATH\" firebase emulators:start --import=./.emulator/data --export-on-exit",
     "rules:deploy:dev": "firebase deploy --only firestore -P dev",
     "rules:deploy:prod": "firebase deploy --only firestore -P prod",
     "icons": "node scripts/generate-icons.mjs",
