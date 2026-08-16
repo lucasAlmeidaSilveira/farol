@@ -29,7 +29,7 @@ export type ProviderDefinition = {
 const REGISTRY: Record<ProviderId, ProviderDefinition> = {
   google: {
     id: 'google',
-    label: 'Continuar com Google',
+    label: 'Continuar com o Google',
     enabled: true,
     create: () => {
       const provider = new GoogleAuthProvider()
@@ -44,7 +44,7 @@ const REGISTRY: Record<ProviderId, ProviderDefinition> = {
 
   apple: {
     id: 'apple',
-    label: 'Continuar com Apple',
+    label: 'Continuar com a Apple',
     enabled: process.env.NEXT_PUBLIC_APPLE_ENABLED === 'true',
     create: () => {
       const provider = new OAuthProvider('apple.com')

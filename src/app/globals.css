@@ -342,6 +342,71 @@
   }
 }
 
+/*
+  A TELA DE ENTRADA é a única superfície com animação longa, e vale explicar
+  por quê: ela é vista uma vez, sem tarefa pendente e sem número esperando
+  leitura. Dentro do app a regra continua 150ms/250ms, porque lá a animação
+  atrasa alguém que está tentando fazer algo.
+
+  Aqui o movimento carrega a marca: um farol é, literalmente, uma luz que varre
+  o escuro. A varredura é lenta e de opacidade baixa de propósito — deve ser
+  percebida como ambiente, nunca como um objeto girando na tela.
+*/
+
+@keyframes farol-beam-sweep {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes farol-glow {
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes farol-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@utility animate-beam {
+  animation: farol-beam-sweep 20s linear infinite;
+  will-change: transform;
+}
+
+@utility animate-glow {
+  animation: farol-glow 7s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+/* Cascata do painel de marca: passos de 110ms, bem maiores que os 40ms de
+   dentro do app. Numa lista, 110ms leria como lentidão; numa apresentação, é
+   o que dá tempo de a frase anterior ser lida antes da próxima entrar. */
+@utility stagger-hero {
+  & > * {
+    animation: farol-hero-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  & > *:nth-child(1) {
+    animation-delay: 80ms;
+  }
+  & > *:nth-child(2) {
+    animation-delay: 190ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 300ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 410ms;
+  }
+  & > *:nth-child(n + 5) {
+    animation-delay: 520ms;
+  }
+}
+
 @layer base {
   /* Sheets do Radix. */
   [data-state='open'][data-slot='sheet-overlay'] {

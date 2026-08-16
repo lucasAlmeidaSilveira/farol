@@ -1,5 +1,6 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
 
@@ -8,13 +9,33 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from './auth-provider'
 import { QueryProvider } from './query-provider'
 
+/**
+ * Rotas que ignoram a preferência de tema e renderizam sempre no claro.
+ *
+ * A tela de entrada é uma vitrine, não uma ferramenta: quem chega ali muitas
+ * vezes ainda não é usuário e nunca escolheu tema nenhum — o que o navegador
+ * reporta é a preferência do sistema, não uma decisão sobre o Farol. Fixar o
+ * claro dá a essa primeira tela um enquadramento único e previsível, que é
+ * também o que a arte da marca assume.
+ */
+const FORCE_LIGHT = new Set(['/entrar'])
+
 export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
   return (
     <ThemeProvider
       attribute="class"
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
+      /*
+        Condicional no provider ÚNICO, e não um `ThemeProvider` aninhado só
+        para a rota: dois providers escrevendo no mesmo `<html>` brigam, e ao
+        sair da tela o tema do usuário poderia não voltar. Quando isto vira
+        `undefined`, o next-themes reaplica a preferência salva sozinho.
+      */
+      forcedTheme={FORCE_LIGHT.has(pathname) ? 'light' : undefined}
     >
       <QueryProvider>
         <AuthProvider>

@@ -61,12 +61,43 @@ export async function signInWith(
     if (USER_GAVE_UP.has(code)) throw new LoginCancelled()
 
     if (RETRY_WITH_REDIRECT.has(code)) {
+      // Marca ANTES de sair da página: na volta é a única pista de que há um
+      // login em curso. Sem ela, a tela de entrar renderiza ociosa enquanto o
+      // SDK resolve o redirect, e parece que o login simplesmente não colou.
+      markRedirectPending()
       // Não retorna: a página navega para fora.
       await signInWithRedirect(auth, provider)
       return null
     }
 
     throw error
+  }
+}
+
+/**
+ * Sinaliza que há um login por redirect em andamento.
+ *
+ * `sessionStorage` e não `localStorage`: a marca precisa morrer com a aba. Uma
+ * marca órfã deixaria a tela de entrar presa em "Entrando…" para sempre.
+ */
+const REDIRECT_PENDING = 'farol:auth-redirect'
+
+export function markRedirectPending(): void {
+  try {
+    window.sessionStorage.setItem(REDIRECT_PENDING, '1')
+  } catch {
+    /* storage bloqueado: perde-se o aviso visual, não o login */
+  }
+}
+
+/** Lê e apaga a marca — ela vale para uma volta só. */
+export function consumeRedirectPending(): boolean {
+  try {
+    const pending = window.sessionStorage.getItem(REDIRECT_PENDING) !== null
+    window.sessionStorage.removeItem(REDIRECT_PENDING)
+    return pending
+  } catch {
+    return false
   }
 }
 
