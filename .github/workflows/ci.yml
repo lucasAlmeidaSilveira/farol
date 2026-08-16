@@ -28,6 +28,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # O script roda `next typegen` antes do tsc: `LayoutProps` e afins são
+      # GERADOS pelo Next em .next/types, e next-env.d.ts é gitignored — num
+      # clone limpo eles ainda não existem e o tsc reprovaria código correto.
       - name: Tipos
         run: pnpm typecheck
 
