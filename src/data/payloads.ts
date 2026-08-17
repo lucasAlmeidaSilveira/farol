@@ -127,6 +127,18 @@ export const incomeSourceOverride = (forecastCents: Cents) => ({
   forecastCents,
 })
 
+/**
+ * Desliga a fonte só neste mês, sem apagar o documento.
+ *
+ * É o que permite "este mês não recebi o aluguel" sem perder o histórico nem a
+ * regra: no mês seguinte a fonte volta sozinha. A engine já lê este flag em
+ * `materializeIncomeSources`.
+ */
+export const incomeSourceOverrideOff = () => ({
+  active: false,
+  forecastCents: null,
+})
+
 export const commitmentOverrideOff = () => ({
   active: false,
   amountCents: null,

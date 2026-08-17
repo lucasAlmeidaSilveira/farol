@@ -23,6 +23,7 @@ import {
   expectedDayFields,
   fixedBillPayload,
   incomeSourceOverride,
+  incomeSourceOverrideOff,
   periodOverridePayload,
 } from '@/data/payloads'
 import { errorMessage } from '@/data/session'
@@ -173,24 +174,28 @@ export function useAddFixedBill(period: Period) {
       dueRule: DueRule | null
       /** Compra parcelada: quantas vezes. `null` = conta sem fim. */
       installments?: number | null
+      /** `thisMonth` fecha a vigência no próprio mês: um gasto pontual. */
+      scope?: EditScope
     }
   >({
     mutationFn: async (bill) => {
       if (!spaceId) throw new Error('Espaço não carregado')
 
+      /*
+        As duas formas de fechar a vigência na criação. Não se combinam: a tela
+        esconde a pergunta de escopo quando a compra é parcelada, porque lá quem
+        define o fim é o número de parcelas.
+      */
+      const until = bill.installments
+        ? installmentUntil(period, bill.installments)
+        : bill.scope === 'thisMonth'
+          ? period
+          : null
+
       try {
         await setDoc(
           doc(commitmentsCollection(spaceId)),
-          fixedBillPayload(
-            period,
-            {
-              ...bill,
-              until: bill.installments
-                ? installmentUntil(period, bill.installments)
-                : null,
-            },
-            serverTimestamp(),
-          ),
+          fixedBillPayload(period, { ...bill, until }, serverTimestamp()),
         )
       } catch (error) {
         toast.error(errorMessage(error))
@@ -212,6 +217,8 @@ export function useEditFixedBill(period: Period) {
       amountCents: Cents
       dueRule: DueRule | null
       currentDueRule: DueRule | null
+      /** Só compra parcelada: nova vigência quando o número de parcelas muda. */
+      recurrence?: { from: Period; until: Period } | null
       scope: EditScope
     }
   >({
@@ -221,11 +228,27 @@ export function useEditFixedBill(period: Period) {
       amountCents,
       dueRule,
       currentDueRule,
+      recurrence,
       scope,
     }) => {
       if (!spaceId) throw new Error('Espaço não carregado')
 
       try {
+        /*
+          A vigência só é reescrita quando a tela pede — e a tela só pede em
+          compra parcelada, com o número de parcelas alterado.
+
+          Conta fixa comum NUNCA passa por aqui: reescrever a recorrência dela
+          por acidente encerraria a conta num mês qualquer, e o gasto sumiria do
+          plano sem nada na tela explicando por quê.
+        */
+        if (recurrence) {
+          await updateDoc(commitmentDoc(spaceId, commitmentId), {
+            recurrence: { ...recurrence, frequency: { type: 'monthly' } },
+            updatedAt: serverTimestamp(),
+          })
+        }
+
         // Mesma razão da renda: nome e vencimento são da conta, não do mês.
         if (JSON.stringify(dueRule) !== JSON.stringify(currentDueRule)) {
           await updateDoc(commitmentDoc(spaceId, commitmentId), {
@@ -358,14 +381,40 @@ export function useAddIncomeSource(period: Period) {
   })
 }
 
-export function useRemoveIncomeSource() {
+export function useRemoveIncomeSource(period: Period) {
   const { spaceId } = useSession()
 
-  return useMutation<void, Error, IncomeSourceId>({
-    mutationFn: async (sourceId) => {
+  return useMutation<
+    void,
+    Error,
+    { sourceId: IncomeSourceId; scope: EditScope }
+  >({
+    mutationFn: async ({ sourceId, scope }) => {
       if (!spaceId) throw new Error('Espaço não carregado')
 
       try {
+        /*
+          Mesma forma da remoção de compromisso: "só neste mês" desliga por
+          override e preserva o histórico; "de vez" apaga o documento — e a tela
+          diz isso antes, porque os meses anteriores vão junto.
+        */
+        if (scope === 'thisMonth') {
+          await setDoc(
+            periodDoc(spaceId, period),
+            periodOverridePayload(
+              period,
+              {
+                incomeSourceOverrides: {
+                  [sourceId]: incomeSourceOverrideOff(),
+                },
+              },
+              serverTimestamp(),
+            ),
+            { merge: true },
+          )
+          return
+        }
+
         await deleteDoc(incomeSourceDoc(spaceId, sourceId))
       } catch (error) {
         toast.error(errorMessage(error))

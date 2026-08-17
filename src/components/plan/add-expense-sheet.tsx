@@ -36,6 +36,7 @@ import {
 import { type Cents, cents, ZERO } from '@/domain/money'
 import type { Period } from '@/domain/period'
 import type { DueRule } from '@/domain/types'
+import type { EditScope } from '@/hooks/plan/use-edit-plan'
 import { formatPeriod } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +47,7 @@ import {
   isValidDueRule,
   toDueRule,
 } from './due-rule-field'
+import { ScopeField } from './scope-field'
 
 /**
  * Adicionar uma conta fixa pelo NOME dela.
@@ -65,14 +67,42 @@ export type AddExpenseSheetProps = {
   saving?: boolean
   /** O mês de início da vigência, para prever quando o parcelamento acaba. */
   period: Period
+  /**
+   * O que se está cadastrando, decidido pela seção de onde o sheet foi aberto.
+   *
+   * Vinha de um chip dentro do formulário, e a seção diz isso melhor: quem tocou
+   * "Adicionar parcelamento" já respondeu a pergunta, e repeti-la dentro do
+   * sheet era um campo a mais para o caso comum.
+   */
+  mode: 'bill' | 'installment'
   onAdd: (bill: {
     label: string
     /** Já é o valor MENSAL: numa compra parcelada, o total dividido. */
     amountCents: Cents
     dueRule: DueRule | null
     installments: number | null
+    /** `thisMonth` cria a conta com vigência de um mês só. */
+    scope: EditScope
   }) => void
 }
+
+/**
+ * Sugestões de NOME para compra parcelada — sem preço.
+ *
+ * O catálogo de assinaturas sugere valor porque o preço da Netflix é o mesmo
+ * para todo mundo. Uma viagem, um notebook e uma reforma não têm valor típico:
+ * sugerir um seria inventar um número que a pessoa vai apagar.
+ */
+const PURCHASE_SUGGESTIONS = [
+  'Viagem',
+  'Celular',
+  'Notebook',
+  'Eletrodoméstico',
+  'Móveis',
+  'Curso',
+  'Reforma',
+  'Saúde',
+] as const
 
 type Draft = {
   label: string
@@ -87,11 +117,30 @@ export function AddExpenseSheet({
   onOpenChange,
   saving = false,
   period,
+  mode,
   onAdd,
 }: AddExpenseSheetProps) {
+  const isInstallment = mode === 'installment'
+  const initialCount = isInstallment ? '12' : ''
+
+  /*
+    Compra parcelada NÃO passa pelo catálogo.
+
+    O catálogo é de assinaturas — Netflix, Spotify, academia — e nenhuma delas é
+    uma compra parcelada. Pior: ele carrega `suggestedCents`, um preço típico
+    que faz sentido para uma assinatura e nenhum para uma viagem, um notebook ou
+    uma reforma, onde o valor é a única coisa que a pessoa realmente sabe.
+    Aqui o fluxo começa direto no formulário, com sugestões só de NOME.
+  */
+  const blankDraft = (): Draft | null =>
+    mode === 'installment'
+      ? { label: '', amountCents: ZERO, due: emptyDueRule, installments: '12' }
+      : null
+
   const [query, setQuery] = useState('')
-  const [draft, setDraft] = useState<Draft | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(blankDraft)
   const [expanded, setExpanded] = useState<string[]>([])
+  const [scope, setScope] = useState<EditScope>('fromNowOn')
 
   const groups = useMemo(() => groupCatalog(searchCatalog(query)), [query])
   const trimmed = query.trim()
@@ -102,18 +151,18 @@ export function AddExpenseSheet({
       label: item.name,
       amountCents: cents(item.suggestedCents),
       due: emptyDueRule,
-      installments: '',
+      installments: initialCount,
     })
   }
 
   function close() {
     onOpenChange(false)
     setQuery('')
-    setDraft(null)
+    setDraft(blankDraft())
+    setScope('fromNowOn')
   }
 
   if (draft) {
-    const isInstallment = draft.installments !== ''
     const count = Number(draft.installments)
     const validCount =
       !isInstallment ||
@@ -136,32 +185,64 @@ export function AddExpenseSheet({
       <Sheet open={open} onOpenChange={(next) => (next ? null : close())}>
         <SheetContent side="bottom">
           <SheetHeader>
-            <SheetTitle>{draft.label || 'Nova conta'}</SheetTitle>
+            <SheetTitle>
+              {draft.label ||
+                (isInstallment ? 'O que você parcelou?' : 'Nova conta')}
+            </SheetTitle>
             <SheetDescription>
-              Confira o valor. Dá para ajustar depois.
+              {isInstallment
+                ? 'Quanto custou no total e em quantas vezes.'
+                : 'Confira o valor. Dá para ajustar depois.'}
             </SheetDescription>
           </SheetHeader>
 
           <SheetBody className="gap-6">
-            {/* Quando veio do catálogo o nome já está certo; quando a pessoa
-                escolheu digitar, ele precisa ser preenchido aqui. */}
-            {draft.label === '' ? (
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Nome da conta</span>
-                <input
-                  autoFocus
-                  value={draft.label}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? { ...current, label: event.target.value }
-                        : current,
-                    )
-                  }
-                  placeholder="Ex: mensalidade do prédio"
-                  className="border-input focus-visible:ring-ring h-12 rounded-lg border bg-transparent px-4 text-base outline-none focus-visible:ring-2"
-                />
-              </label>
+            {/* Vindo do catálogo o nome já está certo e o campo não aparece.
+                Em compra parcelada ele está SEMPRE aberto: não houve catálogo,
+                e a sugestão é só um ponto de partida para editar. */}
+            {isInstallment || draft.label === '' ? (
+              <div className="flex flex-col gap-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium">
+                    {isInstallment ? 'O que você comprou' : 'Nome da conta'}
+                  </span>
+                  <input
+                    autoFocus
+                    value={draft.label}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current
+                          ? { ...current, label: event.target.value }
+                          : current,
+                      )
+                    }
+                    placeholder={
+                      isInstallment
+                        ? 'Ex: viagem para o Chile'
+                        : 'Ex: mensalidade do prédio'
+                    }
+                    className="border-input focus-visible:ring-ring h-12 rounded-lg border bg-transparent px-4 text-base outline-none focus-visible:ring-2"
+                  />
+                </label>
+
+                {isInstallment ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {PURCHASE_SUGGESTIONS.map((item) => (
+                      <Chip
+                        key={item}
+                        selected={draft.label === item}
+                        onClick={() =>
+                          setDraft((current) =>
+                            current ? { ...current, label: item } : current,
+                          )
+                        }
+                      >
+                        {item}
+                      </Chip>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
             <div className="flex flex-col gap-4">
@@ -201,23 +282,6 @@ export function AddExpenseSheet({
               então a última parcela sai do plano sozinha.
             */}
             <div className="flex flex-col gap-3">
-              <Chip
-                selected={isInstallment}
-                className="self-start"
-                onClick={() =>
-                  setDraft((current) =>
-                    current
-                      ? {
-                          ...current,
-                          installments: current.installments === '' ? '12' : '',
-                        }
-                      : current,
-                  )
-                }
-              >
-                Compra parcelada
-              </Chip>
-
               {isInstallment ? (
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-medium">Em quantas vezes</span>
@@ -265,6 +329,27 @@ export function AddExpenseSheet({
               ) : null}
             </div>
 
+            {/*
+              A pergunta de escopo não aparece em compra parcelada: lá quem
+              define a vigência é o número de parcelas, e as duas perguntas
+              juntas se contradiriam.
+            */}
+            {!isInstallment ? (
+              <ScopeField
+                value={scope}
+                onChange={setScope}
+                legend="Essa conta vale a partir de quando?"
+                fromNowOn={{
+                  label: 'Deste mês em diante',
+                  hint: 'Entra no plano todo mês, até você remover.',
+                }}
+                thisMonth={{
+                  label: 'Só neste mês',
+                  hint: 'Um gasto pontual; some do plano no mês que vem.',
+                }}
+              />
+            ) : null}
+
             {/* Vencimento é OPCIONAL. Quem preenche ganha o lembrete na tela
                 inicial; quem não preenche não é cobrado por isso. */}
             <DueRuleField
@@ -274,10 +359,15 @@ export function AddExpenseSheet({
               }
             />
 
-            <p className="text-muted-foreground bg-muted rounded-lg px-4 py-3 text-sm text-balance">
-              O valor sugerido é só um ponto de partida — preço de assinatura
-              muda e varia por plano. Coloque o que sai da sua conta.
-            </p>
+            {/* A ressalva é sobre o preço sugerido pelo catálogo — que só
+                existe em assinatura. Em compra parcelada não há sugestão de
+                valor, então a nota não teria a que se referir. */}
+            {!isInstallment ? (
+              <p className="text-muted-foreground bg-muted rounded-lg px-4 py-3 text-sm text-balance">
+                O valor sugerido é só um ponto de partida — preço de assinatura
+                muda e varia por plano. Coloque o que sai da sua conta.
+              </p>
+            ) : null}
           </SheetBody>
 
           <SheetFooter>
@@ -297,15 +387,20 @@ export function AddExpenseSheet({
                   amountCents: monthlyCents,
                   dueRule: toDueRule(draft.due),
                   installments: usable ? count : null,
+                  scope: isInstallment ? 'fromNowOn' : scope,
                 })
                 close()
               }}
             >
               {saving ? 'Salvando…' : 'Adicionar'}
             </Button>
-            <Button variant="quiet" onClick={() => setDraft(null)}>
-              ← Escolher outro
-            </Button>
+            {/* Não há para onde voltar em compra parcelada: o catálogo foi
+                pulado, e este é o primeiro passo. */}
+            {!isInstallment ? (
+              <Button variant="quiet" onClick={() => setDraft(null)}>
+                ← Escolher outro
+              </Button>
+            ) : null}
           </SheetFooter>
         </SheetContent>
       </Sheet>

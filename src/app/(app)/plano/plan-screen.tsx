@@ -7,13 +7,20 @@ import { MoneyValue } from '@/components/money/money-value'
 import { AddExpenseSheet } from '@/components/plan/add-expense-sheet'
 import { AddIncomeSheet } from '@/components/plan/add-income-sheet'
 import { EditAmountSheet } from '@/components/plan/edit-amount-sheet'
+import { usePlanSections } from '@/components/plan/use-plan-sections'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { installmentProgress } from '@/domain/installments'
 import type { BasisPoints } from '@/domain/money'
 import { add, type Cents, formatRate, ZERO } from '@/domain/money'
-import { calendarPeriodOf, todayIn } from '@/domain/period'
+import { calendarPeriodOf, type Period, todayIn } from '@/domain/period'
 import {
   type CommitmentId,
   expectedRuleOf,
@@ -27,6 +34,7 @@ import {
   useEditFixedBill,
   useEditIncomeForecast,
   useRemoveCommitment,
+  useRemoveIncomeSource,
 } from '@/hooks/plan/use-edit-plan'
 import { useIncomeSources } from '@/hooks/plan/use-plan'
 import { useMonthSummary } from '@/hooks/summary/use-month-summary'
@@ -54,19 +62,28 @@ export function PlanScreen() {
   const editIncome = useEditIncomeForecast(period)
   const editBill = useEditFixedBill(period)
   const removeCommitment = useRemoveCommitment(period)
+  const removeIncome = useRemoveIncomeSource(period)
   const addBill = useAddFixedBill(period)
   const addIncome = useAddIncomeSource(period)
 
   const [editingSource, setEditingSource] = useState<IncomeSource | null>(null)
   const [editingBill, setEditingBill] = useState<CommitmentLine | null>(null)
-  const [addingBill, setAddingBill] = useState(false)
+  /*
+    O tipo do que se adiciona vem da SEÇÃO, não de um campo dentro do
+    formulário: quem tocou "Adicionar parcelamento" já respondeu a pergunta.
+  */
+  const [adding, setAdding] = useState<'bill' | 'installment' | null>(null)
   const [addingIncome, setAddingIncome] = useState(false)
+  const { open: openSections, change: setOpenSections } = usePlanSections()
 
   if (isPending) return <PlanSkeleton />
   if (isError || !summary) return <PlanError />
 
   const proportional = summary.commitments.filter(
     (line) => line.type === 'proportional',
+  )
+  const proportionalTotal = add(
+    ...proportional.map((line) => line.consideredCents),
   )
   /*
     A vigência não vem na `CommitmentLine` — ela é derivada e a engine já
@@ -78,26 +95,55 @@ export function PlanScreen() {
     (input?.commitments ?? []).map((commitment) => [commitment.id, commitment]),
   )
 
-  const installmentOf = (line: CommitmentLine) => {
+  const classify = (line: CommitmentLine) => {
     const raw = rawById.get(line.commitmentId)
-    if (!raw || raw.recurrence.until === null) return null
+    const until = raw?.recurrence.until ?? null
+    if (!raw || until === null) return { oneOff: false, installment: null }
 
     const progress = installmentProgress(raw.recurrence, period)
-    return progress && { ...progress, until: raw.recurrence.until }
+    if (progress === null) return { oneOff: false, installment: null }
+
+    /*
+      Vigência de um mês só NÃO é parcelamento: é um gasto pontual, e chamá-lo
+      de "parcela 1 de 1" o descreveria com o nome errado. Fica nas contas
+      fixas, marcado como pontual.
+    */
+    if (progress.total === 1) return { oneOff: true, installment: null }
+
+    return { oneOff: false, installment: { ...progress, until } }
   }
 
   const fixed = summary.commitments
     .filter((line) => line.type === 'fixedAmount')
-    .map((line) => ({ line, installment: installmentOf(line) }))
+    .map((line) => ({ line, ...classify(line) }))
 
-  const bills = fixed
-    .filter((item) => item.installment === null)
-    .map((item) => item.line)
+  const bills = fixed.filter((item) => item.installment === null)
   const installments = fixed.filter((item) => item.installment !== null)
+
+  /*
+    A âncora da vigência é o mês da PRIMEIRA parcela, que não é o mês atual — é
+    por isso que o sheet precisa do compromisso cru, e não só da linha.
+  */
+  const editingRaw = editingBill
+    ? rawById.get(editingBill.commitmentId)
+    : undefined
+  const editingProgress = editingRaw
+    ? installmentProgress(editingRaw.recurrence, period)
+    : null
+  const editingInstallment =
+    // `> 1` pela mesma razão da classificação: gasto pontual não é parcelamento,
+    // e o campo "Em quantas vezes" não faria sentido nele.
+    editingRaw && editingProgress && editingProgress.total > 1
+      ? {
+          from: editingRaw.recurrence.from,
+          count: editingProgress.total,
+          index: editingProgress.index,
+        }
+      : null
 
   // Cada subtotal soma exatamente as linhas listadas abaixo dele: um subtotal
   // que não bate com o que está logo acima é pior do que subtotal nenhum.
-  const billsTotal = add(...bills.map((line) => line.consideredCents))
+  const billsTotal = add(...bills.map((item) => item.line.consideredCents))
   const installmentsTotal = add(
     ...installments.map((item) => item.line.consideredCents),
   )
@@ -111,8 +157,22 @@ export function PlanScreen() {
         />
 
         <div className="grid gap-8 lg:grid-cols-12">
-          <div className="stagger flex flex-col gap-8 lg:col-span-8">
-            <Section title="Entra">
+          <Accordion
+            type="multiple"
+            value={openSections}
+            onValueChange={setOpenSections}
+            className="stagger flex flex-col gap-2 lg:col-span-8"
+          >
+            {/*
+              Todas as seções carregam subtotal agora, e não só "Contas fixas":
+              fechada sem número, a seção não responderia nada, e o colapso
+              viraria perda pura.
+            */}
+            <Section
+              id="entra"
+              title="Entra"
+              total={summary.totals.consideredIncomeCents}
+            >
               {summary.income.lines.map((line) => {
                 const source = sources?.find(
                   (item) => item.id === line.sourceId,
@@ -133,6 +193,20 @@ export function PlanScreen() {
                     tone="positive"
                     approximate={line.confidence === 'estimated'}
                     onEdit={source ? () => setEditingSource(source) : undefined}
+                    onRemove={
+                      source
+                        ? () =>
+                            void confirmRemoveIncome(
+                              line.name,
+                              summary.income.lines.length <= 1,
+                              (scope) =>
+                                removeIncome.mutateAsync({
+                                  sourceId: source.id,
+                                  scope,
+                                }),
+                            )
+                        : undefined
+                    }
                   />
                 )
               })}
@@ -144,8 +218,10 @@ export function PlanScreen() {
 
             {proportional.length > 0 ? (
               <Section
+                id="sai-antes"
                 title="Sai antes"
                 hint="Descontado da renda antes de qualquer gasto."
+                total={proportionalTotal}
               >
                 {proportional.map((line) => (
                   <Row
@@ -170,11 +246,8 @@ export function PlanScreen() {
               </Section>
             ) : null}
 
-            <Section
-              title="Contas fixas"
-              total={bills.length > 0 ? billsTotal : undefined}
-            >
-              <AddRowButton onClick={() => setAddingBill(true)}>
+            <Section id="contas" title="Contas fixas" total={billsTotal}>
+              <AddRowButton onClick={() => setAdding('bill')}>
                 Adicionar conta
               </AddRowButton>
               {bills.length === 0 ? (
@@ -182,11 +255,11 @@ export function PlanScreen() {
                   Nenhuma conta fixa cadastrada ainda.
                 </p>
               ) : (
-                bills.map((line) => (
+                bills.map(({ line, oneOff }) => (
                   <Row
                     key={line.commitmentId}
                     label={line.name}
-                    hint={dueHint(line.dueRule)}
+                    hint={billHint(line.dueRule, oneOff, period)}
                     amountCents={line.consideredCents}
                     onEdit={() => setEditingBill(line)}
                     onRemove={() =>
@@ -211,41 +284,48 @@ export function PlanScreen() {
               falta até acabar" — e ver que acaba é justamente o alívio que uma
               compra parcelada precisa dar.
             */}
-            {installments.length > 0 ? (
-              <Section
-                title="Parcelas"
-                hint="Saem do plano sozinhas quando a última for paga."
-                total={installmentsTotal}
-              >
-                {installments.map(({ line, installment }) => (
-                  <Row
-                    key={line.commitmentId}
-                    label={line.name}
-                    hint={
-                      installment
-                        ? `parcela ${installment.index} de ${installment.total} · última em ${formatPeriod(
-                            installment.until,
-                            { currentYear: new Date().getFullYear() },
-                          )}`
-                        : undefined
-                    }
-                    amountCents={line.consideredCents}
-                    onRemove={() =>
-                      void confirmRemove(
-                        line.commitmentId,
-                        line.name,
-                        (scope) =>
-                          removeCommitment.mutateAsync({
-                            commitmentId: line.commitmentId,
-                            scope,
-                          }),
-                      )
-                    }
-                  />
-                ))}
-              </Section>
-            ) : null}
-          </div>
+            <Section
+              id="parcelas"
+              title="Parcelas"
+              hint="Saem do plano sozinhas quando a última for paga."
+              total={installments.length > 0 ? installmentsTotal : undefined}
+            >
+              <AddRowButton onClick={() => setAdding('installment')}>
+                Adicionar parcelamento
+              </AddRowButton>
+
+              {installments.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Nenhuma compra parcelada cadastrada.
+                </p>
+              ) : null}
+
+              {installments.map(({ line, installment }) => (
+                <Row
+                  key={line.commitmentId}
+                  label={line.name}
+                  hint={
+                    installment
+                      ? `parcela ${installment.index} de ${installment.total} · última em ${formatPeriod(
+                          installment.until,
+                          { currentYear: new Date().getFullYear() },
+                        )}`
+                      : undefined
+                  }
+                  amountCents={line.consideredCents}
+                  onEdit={() => setEditingBill(line)}
+                  onRemove={() =>
+                    void confirmRemove(line.commitmentId, line.name, (scope) =>
+                      removeCommitment.mutateAsync({
+                        commitmentId: line.commitmentId,
+                        scope,
+                      }),
+                    )
+                  }
+                />
+              ))}
+            </Section>
+          </Accordion>
 
           {/* No desktop o resumo vira um card que acompanha a rolagem, ao lado
               das seções. No celular ele volta a ser a barra fixa do rodapé —
@@ -269,13 +349,16 @@ export function PlanScreen() {
         onAdd={(income) => void addIncome.mutateAsync(income)}
       />
 
-      <AddExpenseSheet
-        open={addingBill}
-        onOpenChange={setAddingBill}
-        saving={addBill.isPending}
-        period={period}
-        onAdd={(bill) => void addBill.mutateAsync(bill)}
-      />
+      {adding ? (
+        <AddExpenseSheet
+          open
+          onOpenChange={(open) => !open && setAdding(null)}
+          saving={addBill.isPending}
+          period={period}
+          mode={adding}
+          onAdd={(bill) => void addBill.mutateAsync(bill)}
+        />
+      ) : null}
 
       {editingSource ? (
         <EditAmountSheet
@@ -308,6 +391,7 @@ export function PlanScreen() {
           initialName={editingBill.name}
           initialCents={editingBill.consideredCents}
           initialDueRule={editingBill.dueRule}
+          installment={editingInstallment}
           saving={editBill.isPending}
           onSave={(changes, scope) => {
             void editBill
@@ -317,6 +401,7 @@ export function PlanScreen() {
                 amountCents: changes.amountCents,
                 dueRule: changes.dueRule,
                 currentDueRule: editingBill.dueRule,
+                recurrence: changes.recurrence,
                 scope,
               })
               .then(() => setEditingBill(null))
@@ -356,6 +441,64 @@ function confirmRemove(
   })
 }
 
+/**
+ * Remover uma fonte de renda — com o mesmo escopo da remoção de compromisso.
+ *
+ * "Só neste mês" desliga por override e o histórico fica intacto; "de vez"
+ * apaga o documento, e por isso a ressalva aparece antes, não depois.
+ *
+ * A ÚLTIMA renda não pode ser removida de vez. Não é capricho: `needsOnboarding`
+ * é derivado de `sources.length === 0`, então zerar as fontes faz o app achar
+ * que o plano nunca foi montado — a navegação some e o onboarding volta a ser
+ * oferecido, por cima de compromissos que continuam existindo. Enquanto essa
+ * inferência não virar um marcador no `Space`, o caminho fica fechado.
+ */
+function confirmRemoveIncome(
+  name: string,
+  isOnly: boolean,
+  remove: (scope: EditScope) => Promise<void>,
+) {
+  return new Promise<void>((resolve) => {
+    toast(`Remover ${name}?`, {
+      duration: 10_000,
+      action: {
+        label: 'Só neste mês',
+        onClick: () => void remove('thisMonth').then(resolve),
+      },
+      cancel: isOnly
+        ? undefined
+        : {
+            label: 'De vez',
+            onClick: () => void remove('fromNowOn').then(resolve),
+          },
+      description: isOnly
+        ? 'É a sua única renda: sem nenhuma, o app volta a pedir o plano do zero. Cadastre outra antes de remover de vez.'
+        : '"De vez" também remove dos meses anteriores.',
+    })
+  })
+}
+
+/**
+ * A dica de uma conta fixa: vencimento e, quando pontual, o mês em que acaba.
+ *
+ * "todo dia 10" sozinho mentiria numa conta de um mês só — sugere repetição
+ * onde não há.
+ */
+function billHint(
+  rule: CommitmentLine['dueRule'],
+  oneOff: boolean,
+  period: Period,
+): string | undefined {
+  const parts = [
+    dueHint(rule),
+    oneOff
+      ? `só em ${formatPeriod(period, { currentYear: new Date().getFullYear() })}`
+      : undefined,
+  ].filter((part): part is string => part !== undefined)
+
+  return parts.length > 0 ? parts.join(' · ') : undefined
+}
+
 /** "todo dia 10" ou "5º dia útil". */
 function dueHint(rule: CommitmentLine['dueRule']): string | undefined {
   if (rule === null) return undefined
@@ -381,7 +524,7 @@ function AddRowButton({
     <button
       type="button"
       onClick={onClick}
-      className="border-input text-muted-foreground hover:bg-muted hover:text-foreground flex min-h-14 items-center justify-center gap-2 rounded-lg border border-dashed transition-colors duration-150"
+      className="border-input text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring flex min-h-11 items-center justify-center gap-2 rounded-lg border border-dashed text-sm transition-colors duration-150 outline-none focus-visible:ring-[3px]"
     >
       <span aria-hidden="true">＋</span>
       {children}
@@ -390,17 +533,25 @@ function AddRowButton({
 }
 
 /**
- * O subtotal fica no cabeçalho da seção, e não num card lateral, por uma razão
- * de alcance: o card `SlackSummary` é `lg:block`, some no celular, e a pessoa
- * que quer saber quanto pesam as contas fixas está justamente olhando a lista
- * delas. Aqui o número aparece nas duas larguras sem ramificação responsiva.
+ * Uma seção do plano, colapsável, com o subtotal no cabeçalho.
+ *
+ * O subtotal é o que torna o colapso ganho e não perda: fechada, a seção
+ * continua respondendo "quanto pesa isto"; aberta, responde "composto de quê".
+ * Fechada por padrão, a tela mostra a equação inteira de uma vez — entra, sai
+ * antes, contas, parcelas — que antes exigia três telas de rolagem.
+ *
+ * E é por isso que o subtotal vive aqui, e não só no card lateral: o
+ * `SlackSummary` é `lg:block` e some no celular.
  */
 function Section({
+  id,
   title,
   hint,
   total,
   children,
 }: {
+  /** Chave do estado persistido de aberto/fechado. */
+  id: string
   title: string
   hint?: string
   /** Omita quando a seção está vazia: "R$ 0,00" ao lado de "nada cadastrado". */
@@ -408,27 +559,39 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-eyebrow text-muted-foreground uppercase">
-            {title}
-          </h2>
-          {hint ? (
-            <p className="text-muted-foreground text-xs">{hint}</p>
+    <AccordionItem
+      value={id}
+      className="bg-card border-border rounded-lg border px-4"
+    >
+      {/* `hover:no-underline` porque o sublinhado padrão pegaria o subtotal
+          junto, e número sublinhado parece link quebrado. */}
+      <AccordionTrigger className="py-3.5 hover:no-underline">
+        <div className="flex flex-1 items-baseline justify-between gap-3">
+          <span className="flex min-w-0 flex-col gap-0.5 text-left">
+            <span className="text-eyebrow text-muted-foreground uppercase">
+              {title}
+            </span>
+            {hint ? (
+              <span className="text-muted-foreground text-xs font-normal">
+                {hint}
+              </span>
+            ) : null}
+          </span>
+
+          {total !== undefined ? (
+            <MoneyValue
+              cents={total}
+              size="sm"
+              srLabel={`Total de ${title}: ${spokenBRL(total)}`}
+            />
           ) : null}
         </div>
+      </AccordionTrigger>
 
-        {total !== undefined ? (
-          <MoneyValue
-            cents={total}
-            size="sm"
-            srLabel={`Total de ${title}: ${spokenBRL(total)}`}
-          />
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-2">{children}</div>
-    </section>
+      <AccordionContent className="pt-1 pb-4">
+        <div className="flex flex-col gap-2">{children}</div>
+      </AccordionContent>
+    </AccordionItem>
   )
 }
 
@@ -449,36 +612,54 @@ function Row({
   onEdit?: () => void
   onRemove?: () => void
 }) {
-  return (
-    <div className="bg-card border-border flex items-center gap-3 rounded-lg border p-4">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+  /*
+    Rótulo e dica na MESMA linha, e a linha inteira é o alvo de edição.
+
+    Empilhar os dois e ainda colocar um lápis de 44px ao lado custava ~76px por
+    item; com 13 itens, três telas de rolagem. Aqui a altura é a do próprio alvo
+    de toque, e editar continua a UM toque — em qualquer ponto da linha, um alvo
+    muito maior do que o ícone que ele substitui.
+
+    Não virou menu "⋮" de propósito: com duas ações só, e remover já protegido
+    pelo toast de confirmação, o menu cobraria um clique sem comprar segurança.
+  */
+  const content = (
+    <>
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
         <span className="truncate font-medium">{label}</span>
         {hint ? (
-          <span className="text-muted-foreground text-xs">{hint}</span>
+          <span className="text-muted-foreground truncate text-xs">{hint}</span>
         ) : null}
-      </div>
+      </span>
 
-      <span className="flex items-baseline gap-1">
+      <span className="flex shrink-0 items-baseline gap-1">
         {/* O "≈" comunica sem palavras que o valor é um chute editável. */}
         {approximate ? (
           <span aria-hidden="true" className="text-muted-foreground text-sm">
             ≈
           </span>
         ) : null}
-        <MoneyValue cents={amountCents} size="lg" tone={tone} />
+        <MoneyValue cents={amountCents} tone={tone} />
       </span>
+    </>
+  )
 
+  return (
+    <div className="bg-card border-border flex items-center rounded-lg border pr-1 pl-3">
       {onEdit ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={`Editar ${label}`}
+        <button
+          type="button"
           onClick={onEdit}
-          className="px-2"
+          aria-label={`Editar ${label}`}
+          className="focus-visible:ring-ring flex min-h-11 flex-1 items-center gap-3 rounded-md py-1.5 text-left outline-none focus-visible:ring-[3px]"
         >
-          <span aria-hidden="true">✎</span>
-        </Button>
-      ) : null}
+          {content}
+        </button>
+      ) : (
+        <div className="flex min-h-11 flex-1 items-center gap-3 py-1.5">
+          {content}
+        </div>
+      )}
 
       {onRemove ? (
         <Button
@@ -486,7 +667,7 @@ function Row({
           size="sm"
           aria-label={`Remover ${label}`}
           onClick={onRemove}
-          className="text-muted-foreground px-2"
+          className="text-muted-foreground shrink-0 px-2"
         >
           <span aria-hidden="true">×</span>
         </Button>
