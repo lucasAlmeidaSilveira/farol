@@ -20,12 +20,26 @@ import {
   period,
   periodOf,
   todayIn,
+  weekdayOf,
   yearMonth,
 } from './period'
 
 const p = period
 const d = localDate
 const start = (day: number): CycleStart => ({ type: 'dayOfMonth', day })
+
+/**
+ * A faixa é limitada de propósito: `LocalDate` exige ano de 4 dígitos, então
+ * gerar perto do ano 1000 estoura o formato ao somar ou subtrair dias — e o que
+ * se quer testar aqui é a aritmética, não o limite do tipo.
+ */
+const anyLocalDate = fc
+  .date({
+    min: new Date(Date.UTC(2020, 0, 1)),
+    max: new Date(Date.UTC(2040, 11, 31)),
+    noInvalidDate: true,
+  })
+  .map((date) => localDate(date.toISOString().slice(0, 10)))
 
 describe('construtores', () => {
   it('aceitam formatos válidos', () => {
@@ -116,6 +130,32 @@ describe('aritmética de dia', () => {
     expect(dayOfMonth(d('2026-08-14'))).toBe(14)
     expect(dayOfMonth(d('2026-08-01'))).toBe(1)
   })
+
+  it('dá o dia da semana, com domingo em 0', () => {
+    // A âncora do cálculo: 1970-01-01 foi uma quinta-feira.
+    expect(weekdayOf(d('1970-01-01'))).toBe(4)
+
+    // Agosto de 2026 começa num sábado — é o mês que faz o quinto dia útil
+    // cair no dia 7, e o mesmo fato governa a grade do calendário.
+    expect(weekdayOf(d('2026-08-01'))).toBe(6)
+    expect(weekdayOf(d('2026-08-02'))).toBe(0)
+
+    // Antes de 1970 o epoch day é negativo, onde `%` devolveria negativo.
+    expect(weekdayOf(d('1969-12-31'))).toBe(3)
+  })
+
+  it('o dia da semana se repete a cada 7 dias e nunca sai de 0..6', () => {
+    fc.assert(
+      fc.property(anyLocalDate, (date) => {
+        const day = weekdayOf(date)
+
+        expect(day).toBeGreaterThanOrEqual(0)
+        expect(day).toBeLessThanOrEqual(6)
+        expect(weekdayOf(addDays(date, 7))).toBe(day)
+        expect(weekdayOf(addDays(date, -7))).toBe(day)
+      }),
+    )
+  })
 })
 
 describe('cycleFor', () => {
@@ -180,14 +220,6 @@ describe('periodOf', () => {
 })
 
 describe('as invariantes do ciclo', () => {
-  const anyLocalDate = fc
-    .date({
-      min: new Date(Date.UTC(2020, 0, 1)),
-      max: new Date(Date.UTC(2040, 11, 31)),
-      noInvalidDate: true,
-    })
-    .map((date) => localDate(date.toISOString().slice(0, 10)))
-
   const anyCycleStart = fc.integer({ min: 1, max: 31 }).map((day) => start(day))
 
   it('periodOf e cycleFor são inversas para qualquer data e qualquer dia D', () => {

@@ -1,6 +1,9 @@
 'use client'
 
+import Link from 'next/link'
+
 import { FarolLockup } from '@/components/brand/farol-lockup'
+import { AccountMenu } from '@/components/shared/account-menu'
 import { cn } from '@/lib/utils'
 
 /**
@@ -8,6 +11,10 @@ import { cn } from '@/lib/utils'
  *
  * A marca só aparece abaixo de `lg`: no desktop ela já está na barra lateral, e
  * repetir logotipo na mesma tela é ruído que rouba espaço do conteúdo.
+ *
+ * O avatar acompanha a marca pela mesma razão invertida: no celular não existe
+ * barra lateral, então sem ele a conta não teria nenhum ponto de acesso — que
+ * era o caso de sair, alcançável só no fim de Ajustes.
  */
 export function PageHeader({
   title,
@@ -22,9 +29,22 @@ export function PageHeader({
 }) {
   return (
     <header className={cn('flex flex-col gap-4', className)}>
-      <div className="flex items-center justify-between lg:hidden">
-        <FarolLockup size={26} />
-        {aside}
+      <div className="flex items-center justify-between gap-3 lg:hidden">
+        {/*
+          A marca leva para o início, como em qualquer app.
+
+          Não era link, e na barra lateral era — o que deixava a home
+          inalcançável justamente no estado sem plano, onde a navegação inteira
+          não é montada e esta é a única marca na tela.
+        */}
+        <Link href="/" aria-label="Farol — início" className="shrink-0">
+          <FarolLockup size={26} />
+        </Link>
+
+        <div className="flex min-w-0 items-center gap-3">
+          {aside}
+          <AccountMenu compact />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">

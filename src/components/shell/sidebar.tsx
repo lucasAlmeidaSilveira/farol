@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 
 import { FarolLockup } from '@/components/brand/farol-lockup'
 import { FarolMark } from '@/components/brand/farol-mark'
+import { AccountMenu } from '@/components/shared/account-menu'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { UserAvatar } from '@/components/shared/user-avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -15,7 +15,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { useSession } from '@/providers/auth-provider'
 
 import { NAV_ITEMS } from './nav-items'
 import { useQuickEntry } from './quick-entry-context'
@@ -47,7 +46,6 @@ export function Sidebar({
   onToggle: () => void
 }) {
   const pathname = usePathname()
-  const { user } = useSession()
   const quickEntry = useQuickEntry()
 
   return (
@@ -190,27 +188,14 @@ export function Sidebar({
       >
         {collapsed ? null : <ThemeToggle compact />}
 
-        <WithTooltip
-          label={user?.displayName ?? user?.email ?? ''}
-          show={collapsed}
-        >
-          <div
-            className={cn(
-              'flex items-center gap-2.5',
-              collapsed ? 'justify-center' : 'px-1',
-            )}
-          >
-            <UserAvatar />
-            <span
-              className={cn(
-                'text-muted-foreground min-w-0 truncate text-xs',
-                collapsed && 'sr-only',
-              )}
-            >
-              {user?.displayName ?? user?.email}
-            </span>
-          </div>
-        </WithTooltip>
+        {/* O avatar É o menu da conta. Antes era um `div` inerte com toda a
+            aparência de menu — e sair vivia só no fim de Ajustes. */}
+        <AccountMenu
+          compact={collapsed}
+          side={collapsed ? 'right' : 'top'}
+          align={collapsed ? 'end' : 'start'}
+          className={collapsed ? 'justify-center' : 'w-full'}
+        />
       </div>
     </aside>
   )

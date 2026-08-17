@@ -3,6 +3,7 @@ import {
   type LocalDate,
   localDate,
   type Period,
+  weekdayOf,
   yearMonth,
 } from './period'
 
@@ -88,13 +89,8 @@ export function bankHolidays(year: number): ReadonlySet<string> {
   return dates
 }
 
-/** Domingo é 0 e sábado é 6, na aritmética UTC usada por `LocalDate`. */
-function weekday(date: LocalDate): number {
-  return new Date(`${date}T00:00:00Z`).getUTCDay()
-}
-
 export function isBusinessDay(date: LocalDate): boolean {
-  const day = weekday(date)
+  const day = weekdayOf(date)
   if (day === 0 || day === 6) return false
   return !bankHolidays(Number(date.slice(0, 4))).has(date)
 }

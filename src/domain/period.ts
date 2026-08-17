@@ -108,6 +108,15 @@ export const calendarPeriodOf = (value: LocalDate): Period =>
 export const dayOfMonth = (value: LocalDate): number =>
   Number(value.slice(8, 10))
 
+/**
+ * Domingo é 0 e sábado é 6 — a base da grade de um calendário.
+ *
+ * 1970-01-01 caiu numa quinta, daí o deslocamento de 4. O resto duplo mantém o
+ * resultado positivo para datas anteriores a 1970, onde `%` devolve negativo.
+ */
+export const weekdayOf = (value: LocalDate): number =>
+  (((toEpochDay(value) + 4) % 7) + 7) % 7
+
 // ------------------------------------------------------------------- ciclo
 
 /**

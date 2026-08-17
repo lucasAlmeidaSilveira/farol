@@ -1,15 +1,17 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { FarolMark } from '@/components/brand/farol-mark'
 import { MoneyValue } from '@/components/money/money-value'
+import { AccountMenu } from '@/components/shared/account-menu'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { errorMessage } from '@/data/session'
 import { type Cents, cents, negate, ZERO } from '@/domain/money'
+import { useIncomeSources } from '@/hooks/plan/use-plan'
 import { useSaveOnboarding } from '@/hooks/plan/use-save-onboarding'
 import { formatDays } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -44,6 +46,19 @@ export function OnboardingFlow() {
   const router = useRouter()
   const { user } = useSession()
   const save = useSaveOnboarding()
+  const { data: sources } = useIncomeSources()
+
+  /*
+    Refazer o onboarding com o plano já montado DUPLICARIA tudo.
+
+    `useSaveOnboarding` grava com id gerado pelo Firestore, então ele sempre
+    cria — nunca atualiza. Chegar aqui pela URL, por um atalho antigo do PWA ou
+    pelo histórico sairia com duas rendas e duas Comunhões de Bens, e o número
+    da home dobraria sem explicação.
+  */
+  useEffect(() => {
+    if (sources && sources.length > 0) router.replace('/')
+  }, [sources, router])
 
   const [step, setStep] = useState<Step>('income')
   const [state, setState] = useState<OnboardingState>(() => ({
@@ -100,19 +115,33 @@ export function OnboardingFlow() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pt-4 pb-32 sm:px-6">
       <header className="flex flex-col gap-3 pb-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
+          {/*
+            No primeiro passo o ‹ leva de volta ao app, em vez de ficar morto.
+
+            "Nada é obrigatório" só vale se der para desistir: o botão desabilitado
+            transformava entrar no onboarding numa viagem só de ida — a única saída
+            era terminar o fluxo ou sair da conta.
+          */}
           <button
             type="button"
-            onClick={goBack}
-            disabled={index === 0}
-            aria-label="Voltar"
-            className="text-muted-foreground disabled:opacity-30"
+            onClick={index === 0 ? () => router.push('/') : goBack}
+            aria-label={index === 0 ? 'Voltar para o início' : 'Voltar'}
+            className="text-muted-foreground"
           >
             ‹
           </button>
           <span className="text-muted-foreground text-sm">
             {index + 1} de {STEPS.length - 1}
           </span>
+          {/*
+            A conta precisa ter saída AQUI.
+
+            Quem acabou de entrar com a conta errada fica preso: o onboarding
+            não monta a casca do app, então não há barra lateral, navegação nem
+            Ajustes — e sair só existia lá dentro, depois de terminar o fluxo.
+          */}
+          <AccountMenu compact withSettings={false} />
         </div>
 
         <Progress

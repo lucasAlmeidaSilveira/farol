@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   bankHolidays,
+  businessDayLabel,
   businessDaysInMonth,
   easterSunday,
   isBusinessDay,
@@ -167,5 +168,12 @@ describe('businessDaysInMonth', () => {
       cursor = addDays(cursor, 1)
     }
     expect(businessDaysInMonth(target)).toBe(manual)
+  })
+})
+
+describe('businessDayLabel', () => {
+  it('escreve o ordinal como a UI mostra', () => {
+    expect(businessDayLabel(1)).toBe('1º dia útil')
+    expect(businessDayLabel(5)).toBe('5º dia útil')
   })
 })

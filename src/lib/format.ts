@@ -1,5 +1,5 @@
 import { type Cents, formatBRL } from '@/domain/money'
-import type { LocalDate, Period } from '@/domain/period'
+import { type LocalDate, type Period, weekdayOf } from '@/domain/period'
 
 /**
  * Formatação voltada para a tela. As regras de dinheiro em si vivem em
@@ -37,6 +37,30 @@ export function formatDate(value: LocalDate): string {
   const month = MONTHS[Number(value.slice(5, 7)) - 1] ?? ''
   return `${day} de ${month}`
 }
+
+/** Domingo primeiro, como se lê um calendário brasileiro. */
+export const WEEKDAY_NAMES = [
+  'domingo',
+  'segunda-feira',
+  'terça-feira',
+  'quarta-feira',
+  'quinta-feira',
+  'sexta-feira',
+  'sábado',
+] as const
+
+/** `'2026-08-14'` vira `'sexta-feira'`. */
+export const formatWeekday = (value: LocalDate): string =>
+  WEEKDAY_NAMES[weekdayOf(value)] ?? ''
+
+/**
+ * `'2026-08-14'` vira `'14/08'`.
+ *
+ * A forma curta existe para caber num chip. Onde há espaço, `formatDate` lê
+ * melhor — "14 de agosto" não se confunde com o formato americano.
+ */
+export const formatShortDate = (value: LocalDate): string =>
+  `${value.slice(8, 10)}/${value.slice(5, 7)}`
 
 /**
  * A leitura falada de um valor, para leitores de tela.

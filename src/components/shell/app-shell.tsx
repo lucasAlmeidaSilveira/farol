@@ -1,9 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { FarolLockup } from '@/components/brand/farol-lockup'
 import { IncomeImpactSheet } from '@/components/entries/income-impact-sheet'
 import { QuickEntrySheet } from '@/components/entries/quick-entry-sheet'
+import { AccountMenu } from '@/components/shared/account-menu'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
 import type { IncomeImpact } from '@/engine'
 import { useMonthSummary } from '@/hooks/summary/use-month-summary'
@@ -84,6 +87,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             'transition-[padding] duration-200 ease-out',
           )}
         >
+          {/*
+            Sem plano montado não há barra lateral — e era ali que a conta
+            morava no desktop. Sem isto, quem entrou com a conta errada e caiu
+            no farol apagado não tem por onde sair: não há navegação, não há
+            Ajustes, e o único botão da tela leva ao onboarding.
+
+            Só em `lg`: no celular o cabeçalho da própria tela já traz o avatar.
+          */}
+          {!canLaunch ? (
+            <div className="hidden items-center justify-between px-10 pt-6 lg:flex">
+              <Link href="/" aria-label="Farol — início">
+                <FarolLockup size={26} />
+              </Link>
+              <AccountMenu compact />
+            </div>
+          ) : null}
+
           {children}
         </div>
 

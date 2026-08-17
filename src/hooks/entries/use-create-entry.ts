@@ -4,9 +4,11 @@ import { useMutation } from '@tanstack/react-query'
 import { deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
 
+import { ensureCategory } from '@/data/ensure-category'
 import { entriesCollection, entryDoc } from '@/data/paths'
 import { type EntryInput, entryPayload } from '@/data/payloads'
 import { errorMessage } from '@/data/session'
+import { DEFAULT_CATEGORIES } from '@/domain/categories'
 import type { EntryId } from '@/domain/types'
 import { useSpace } from '@/hooks/space/use-space'
 import { markFirstEntry } from '@/lib/engagement'
@@ -35,6 +37,16 @@ export function useCreateEntry() {
     mutationFn: async (input) => {
       if (!spaceId || !space || !user) {
         throw new Error('Sessão ou espaço ainda não carregados')
+      }
+
+      // A categoria vira documento na primeira vez que é usada. Fazer isso aqui,
+      // e não na tela, garante que qualquer origem de gasto — sheet, atalho do
+      // PWA, importação futura — deixe a referência válida.
+      if (input.kind === 'expense' && input.categoryId !== null) {
+        const category = DEFAULT_CATEGORIES.find(
+          (item) => item.id === input.categoryId,
+        )
+        if (category) ensureCategory(spaceId, category)
       }
 
       const reference = doc(entriesCollection(spaceId))

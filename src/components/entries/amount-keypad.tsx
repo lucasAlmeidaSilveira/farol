@@ -79,10 +79,17 @@ export function AmountKeypad({
               key={key}
               type="button"
               onClick={() => press(key)}
+              // Apagar de R$ 0,00 não faz nada. Deixar o botão com aparência de
+              // disponível é o app respondendo ao toque com silêncio.
+              disabled={key === '⌫' && value === 0}
               aria-label={key === '⌫' ? 'Apagar último dígito' : key}
               className={cn(
-                'flex h-14 items-center justify-center rounded-lg text-xl font-medium',
-                'hover:bg-muted active:bg-muted transition-colors',
+                'flex h-14 items-center justify-center rounded-lg text-xl font-medium transition-all',
+                'hover:bg-muted active:bg-muted active:scale-[0.98]',
+                // Mesma gramática de foco e de desabilitado do `button.tsx`:
+                // sem isto, os 11 dígitos eram invisíveis à navegação por teclado.
+                'focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]',
+                'disabled:pointer-events-none disabled:opacity-50',
                 key === '⌫' && 'text-muted-foreground',
               )}
             >
