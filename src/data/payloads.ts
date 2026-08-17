@@ -31,10 +31,22 @@ const audit = (timestamp: Stamp) => ({
   archivedAt: null,
 })
 
+/**
+ * A união do domínio de volta para o par de campos que o Firestore guarda.
+ *
+ * O mesmo par existe em `dueDay`/`dueBusinessDay` dos compromissos, hoje com a
+ * conversão repetida à mão em dois pontos. Esta função é o lugar para onde
+ * aqueles dois devem migrar.
+ */
+export const expectedDayFields = (rule: DueRule | null) => ({
+  expectedDay: rule?.type === 'dayOfMonth' ? rule.day : null,
+  expectedBusinessDay: rule?.type === 'businessDay' ? rule.n : null,
+})
+
 export type IncomePlanInput = {
   amountCents: Cents
   confidence: 'exact' | 'estimated'
-  expectedDay: number | null
+  expectedRule: DueRule | null
 }
 
 export function incomeSourcePayload(
@@ -48,7 +60,7 @@ export function incomeSourcePayload(
     forecastCents: input.amountCents,
     confidence: input.confidence,
     recurrence: { from, until: null, frequency: { type: 'monthly' as const } },
-    expectedDay: input.expectedDay,
+    ...expectedDayFields(input.expectedRule),
     ...audit(timestamp),
   }
 }
@@ -59,13 +71,25 @@ export function covenantPayload(from: Period, timestamp: Stamp) {
 
 export function fixedBillPayload(
   from: Period,
-  bill: { label: string; amountCents: Cents; dueRule?: DueRule | null },
+  bill: {
+    label: string
+    amountCents: Cents
+    dueRule?: DueRule | null
+    /** Preenchido só em compra parcelada: o mês da última parcela. */
+    until?: Period | null
+  },
   timestamp: Stamp,
 ) {
   const rule = bill.dueRule ?? null
 
   return {
-    ...fixedBillDraft(from, bill.label, bill.amountCents, null),
+    ...fixedBillDraft(
+      from,
+      bill.label,
+      bill.amountCents,
+      null,
+      bill.until ?? null,
+    ),
     // Os dois campos vão juntos e são excludentes: gravar só um deixaria um
     // vencimento antigo sobreviver à troca de tipo.
     dueDay: rule?.type === 'dayOfMonth' ? rule.day : null,

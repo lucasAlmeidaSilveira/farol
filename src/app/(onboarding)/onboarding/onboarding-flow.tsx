@@ -81,7 +81,7 @@ export function OnboardingFlow() {
       await save.mutateAsync({
         incomeCents: state.incomeCents,
         incomeConfidence: state.incomeConfidence,
-        incomeDay: null,
+        expectedRule: null,
         withCovenant: state.withCovenant,
         // Gasto sem nome ou sem valor é linha que a pessoa começou e não
         // terminou — salvar geraria um item inútil no plano, e as rules

@@ -25,8 +25,17 @@ import {
 } from '@/data/payloads'
 import { cents } from '@/domain/money'
 import { localDate, period } from '@/domain/period'
-import { commitmentSchema, entrySchema, incomeSourceSchema } from '@/domain/schemas'
-import type { Commitment, Entry, IncomeSource, SpaceConfig } from '@/domain/types'
+import {
+  commitmentSchema,
+  entrySchema,
+  incomeSourceSchema,
+} from '@/domain/schemas'
+import type {
+  Commitment,
+  Entry,
+  IncomeSource,
+  SpaceConfig,
+} from '@/domain/types'
 import { computeMonth } from '@/engine'
 
 /**
@@ -121,7 +130,7 @@ describe('payload -> rules -> schema -> engine', () => {
           {
             amountCents: cents(325_000),
             confidence: 'estimated',
-            expectedDay: 5,
+            expectedRule: { type: 'dayOfMonth', day: 5 },
           },
           FROM,
           serverTimestamp(),
@@ -266,7 +275,9 @@ describe('payload -> rules -> schema -> engine', () => {
     //   ────────────────────────────────
     //   Livre              R$ 1.647,50
     expect(summary.totals.consideredIncomeCents).toBe(355_000)
-    expect(summary.totals.consideredCommitmentCents).toBe(53_250 + 95_000 + 12_000)
+    expect(summary.totals.consideredCommitmentCents).toBe(
+      53_250 + 95_000 + 12_000,
+    )
     expect(summary.totals.freeExpenseCents).toBe(42_000)
     expect(summary.totals.remainingToSpendCents).toBe(164_750 - 12_000)
 

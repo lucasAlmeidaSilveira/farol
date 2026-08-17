@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -46,8 +48,8 @@ export type EditChanges = {
   amountCents: Cents
   /** Regra de vencimento, para contas. */
   dueRule: DueRule | null
-  /** Dia esperado, para rendas. */
-  expectedDay: number | null
+  /** Quando a renda cai — mesma forma do vencimento, por dia ou por dia útil. */
+  expectedRule: DueRule | null
 }
 
 export type EditAmountSheetProps = {
@@ -55,10 +57,10 @@ export type EditAmountSheetProps = {
   onOpenChange: (open: boolean) => void
   initialName: string
   initialCents: Cents
-  /** Contas usam regra de vencimento; rendas usam só um dia esperado. */
+  /** Muda os rótulos; a forma do campo de dia é a mesma nos dois. */
   mode: 'bill' | 'income'
   initialDueRule?: DueRule | null
-  initialExpectedDay?: number | null
+  initialExpectedRule?: DueRule | null
   /** Quando falso, o sheet salva direto sem perguntar o escopo. */
   askScope?: boolean
   saving?: boolean
@@ -72,7 +74,7 @@ export function EditAmountSheet({
   initialCents,
   mode,
   initialDueRule = null,
-  initialExpectedDay = null,
+  initialExpectedRule = null,
   askScope = true,
   saving = false,
   onSave,
@@ -85,19 +87,19 @@ export function EditAmountSheet({
   */
   const [name, setName] = useState(initialName)
   const [amount, setAmount] = useState<Cents>(initialCents)
-  const [due, setDue] = useState<DueRuleValue>(() => fromDueRule(initialDueRule))
-  const [dayText, setDayText] = useState(
-    initialExpectedDay === null ? '' : String(initialExpectedDay),
-  )
+  /*
+    Renda e conta compartilham o MESMO campo desde que "dia útil" passou a valer
+    para as duas. Salário no quinto dia útil é a regra da folha, não exceção — e
+    manter dois campos diferentes fazia a mesma pergunta de dois jeitos.
+  */
+  const initialRule = mode === 'bill' ? initialDueRule : initialExpectedRule
+  const [due, setDue] = useState<DueRuleValue>(() => fromDueRule(initialRule))
   const [scope, setScope] = useState<EditScope>('fromNowOn')
 
-  const validDay = isValidDay(dayText)
   const validDue = isValidDueRule(due)
 
   const dayChanged =
-    mode === 'bill'
-      ? JSON.stringify(toDueRule(due)) !== JSON.stringify(initialDueRule)
-      : dayText !== (initialExpectedDay === null ? '' : String(initialExpectedDay))
+    JSON.stringify(toDueRule(due)) !== JSON.stringify(initialRule)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -111,7 +113,7 @@ export function EditAmountSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 overflow-y-auto px-4 pb-6">
+        <SheetBody className="gap-6">
           <div className="flex flex-col gap-2">
             <Label htmlFor="edit-name">Nome</Label>
             <Input
@@ -123,7 +125,9 @@ export function EditAmountSheet({
               className="h-12 text-base"
             />
             {name.trim() === '' ? (
-              <p className="text-negative text-sm">O nome não pode ficar vazio.</p>
+              <p className="text-negative text-sm">
+                O nome não pode ficar vazio.
+              </p>
             ) : null}
           </div>
 
@@ -143,36 +147,11 @@ export function EditAmountSheet({
             </div>
           </div>
 
-          {mode === 'bill' ? (
-            <DueRuleField value={due} onChange={setDue} />
-          ) : (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-day">
-                Cai todo dia{' '}
-                <span className="text-muted-foreground font-normal">
-                  (opcional)
-                </span>
-              </Label>
-              <Input
-                id="edit-day"
-                inputMode="numeric"
-                value={dayText}
-                onChange={(event) => setDayText(event.target.value.slice(0, 2))}
-                placeholder="5"
-                aria-invalid={!validDay}
-                className="h-12 w-24 text-base"
-              />
-              {validDay ? (
-                <p className="text-muted-foreground text-xs text-balance">
-                  Serve de referência para você saber quando o dinheiro entra.
-                </p>
-              ) : (
-                <p className="text-negative text-sm">
-                  Use um dia entre 1 e 31.
-                </p>
-              )}
-            </div>
-          )}
+          <DueRuleField
+            value={due}
+            onChange={setDue}
+            label={mode === 'bill' ? 'Vencimento' : 'Quando cai'}
+          />
 
           {askScope ? (
             <fieldset className="flex flex-col gap-2">
@@ -204,15 +183,13 @@ export function EditAmountSheet({
               ) : null}
             </fieldset>
           ) : null}
+        </SheetBody>
 
+        <SheetFooter>
           <Button
             size="block"
             disabled={
-              amount === ZERO ||
-              name.trim() === '' ||
-              !validDay ||
-              !validDue ||
-              saving
+              amount === ZERO || name.trim() === '' || !validDue || saving
             }
             onClick={() =>
               onSave(
@@ -220,10 +197,7 @@ export function EditAmountSheet({
                   name: name.trim(),
                   amountCents: amount,
                   dueRule: mode === 'bill' ? toDueRule(due) : null,
-                  expectedDay:
-                    mode === 'income' && dayText !== ''
-                      ? Number(dayText)
-                      : null,
+                  expectedRule: mode === 'income' ? toDueRule(due) : null,
                 },
                 scope,
               )
@@ -231,17 +205,10 @@ export function EditAmountSheet({
           >
             {saving ? 'Salvando…' : 'Salvar'}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )
-}
-
-/** Vazio é válido: o dia é opcional. */
-function isValidDay(value: string): boolean {
-  if (value === '') return true
-  const day = Number(value)
-  return Number.isInteger(day) && day >= 1 && day <= 31
 }
 
 function ScopeOption({

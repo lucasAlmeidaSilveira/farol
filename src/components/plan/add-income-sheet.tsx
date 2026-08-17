@@ -3,19 +3,28 @@
 import { useState } from 'react'
 
 import { MoneyInput } from '@/components/money/money-input'
+import {
+  DueRuleField,
+  type DueRuleValue,
+  emptyDueRule,
+  isValidDueRule,
+  toDueRule,
+} from '@/components/plan/due-rule-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { type Cents, ZERO } from '@/domain/money'
-import type { IncomeKind } from '@/domain/types'
+import type { DueRule, IncomeKind } from '@/domain/types'
 import { cn } from '@/lib/utils'
 
 /**
@@ -31,7 +40,8 @@ export type NewIncome = {
   name: string
   kind: IncomeKind
   amountCents: Cents
-  expectedDay: number | null
+  /** Por dia do mês OU por dia útil — folha de pagamento usa as duas formas. */
+  expectedRule: DueRule | null
 }
 
 export type AddIncomeSheetProps = {
@@ -60,20 +70,17 @@ export function AddIncomeSheet({
   const [name, setName] = useState('')
   const [kind, setKind] = useState<IncomeKind>('fixed')
   const [amount, setAmount] = useState<Cents>(ZERO)
-  const [day, setDay] = useState('')
+  const [when, setWhen] = useState<DueRuleValue>(emptyDueRule)
 
   function close() {
     onOpenChange(false)
     setName('')
     setKind('fixed')
     setAmount(ZERO)
-    setDay('')
+    setWhen(emptyDueRule)
   }
 
-  const parsedDay = Number(day)
-  const validDay =
-    day === '' ||
-    (Number.isInteger(parsedDay) && parsedDay >= 1 && parsedDay <= 31)
+  const validWhen = isValidDueRule(when)
 
   return (
     <Sheet open={open} onOpenChange={(next) => (next ? null : close())}>
@@ -85,7 +92,7 @@ export function AddIncomeSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 overflow-y-auto px-4 pb-6">
+        <SheetBody>
           <Tabs
             value={kind}
             onValueChange={(next: string) => setKind(next as IncomeKind)}
@@ -143,43 +150,29 @@ export function AddIncomeSheet({
           </div>
 
           {kind === 'fixed' ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="income-day">Dia do mês (opcional)</Label>
-              <Input
-                id="income-day"
-                inputMode="numeric"
-                value={day}
-                onChange={(event) => setDay(event.target.value.slice(0, 2))}
-                placeholder="5"
-                aria-invalid={!validDay}
-                className="h-12 w-24 text-base"
-              />
-              {!validDay ? (
-                <p className="text-negative text-sm">
-                  Use um dia entre 1 e 31.
-                </p>
-              ) : null}
-            </div>
+            <DueRuleField value={when} onChange={setWhen} label="Quando cai" />
           ) : null}
+        </SheetBody>
 
+        <SheetFooter>
           <Button
             size="block"
             disabled={
-              name.trim() === '' || amount === ZERO || !validDay || saving
+              name.trim() === '' || amount === ZERO || !validWhen || saving
             }
             onClick={() => {
               onAdd({
                 name: name.trim(),
                 kind,
                 amountCents: amount,
-                expectedDay: day === '' ? null : parsedDay,
+                expectedRule: toDueRule(when),
               })
               close()
             }}
           >
             {saving ? 'Salvando…' : 'Adicionar renda'}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

@@ -234,6 +234,43 @@ describe('IncomeSource', () => {
     ).toBe(false)
   })
 
+  it('aceita recebimento por dia útil', () => {
+    const parsed = incomeSourceSchema.safeParse({
+      ...source,
+      expectedDay: null,
+      expectedBusinessDay: 5,
+    })
+    expect(parsed.success).toBe(true)
+  })
+
+  it('recusa dia útil acima de 23 — nenhum mês tem mais que isso', () => {
+    expect(
+      incomeSourceSchema.safeParse({
+        ...source,
+        expectedDay: null,
+        expectedBusinessDay: 24,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('recusa dia do mês e dia útil ao mesmo tempo', () => {
+    expect(
+      incomeSourceSchema.safeParse({ ...source, expectedBusinessDay: 5 })
+        .success,
+    ).toBe(false)
+  })
+
+  /*
+    A garantia que impede a renda de sumir da tela: fontes gravadas antes de
+    `expectedBusinessDay` existir não têm a chave, e `parseSnapshot` descarta
+    documento que não valida.
+  */
+  it('aceita fonte antiga, sem a chave de dia útil, normalizando para null', () => {
+    const parsed = incomeSourceSchema.safeParse(source)
+    expect(parsed.success).toBe(true)
+    expect(parsed.data?.expectedBusinessDay).toBeNull()
+  })
+
   it('aceita fonte avulsa, sem recorrência', () => {
     expect(
       incomeSourceSchema.safeParse({ ...source, recurrence: null }).success,
@@ -594,7 +631,9 @@ describe('vencimento do compromisso', () => {
   })
 
   it('aceita vencimento por dia do mês', () => {
-    expect(commitmentSchema.safeParse({ ...bill, dueDay: 10 }).success).toBe(true)
+    expect(commitmentSchema.safeParse({ ...bill, dueDay: 10 }).success).toBe(
+      true,
+    )
   })
 
   it('aceita vencimento por dia útil', () => {
@@ -614,8 +653,12 @@ describe('vencimento do compromisso', () => {
   })
 
   it('recusa dia do mês fora de 1..31', () => {
-    expect(commitmentSchema.safeParse({ ...bill, dueDay: 32 }).success).toBe(false)
-    expect(commitmentSchema.safeParse({ ...bill, dueDay: 0 }).success).toBe(false)
+    expect(commitmentSchema.safeParse({ ...bill, dueDay: 32 }).success).toBe(
+      false,
+    )
+    expect(commitmentSchema.safeParse({ ...bill, dueDay: 0 }).success).toBe(
+      false,
+    )
   })
 
   it('recusa dia útil acima de 23 — nenhum mês tem tantos', () => {

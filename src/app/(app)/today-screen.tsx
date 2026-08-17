@@ -7,13 +7,12 @@ import { BeaconCard } from '@/components/home/beacon-card'
 import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { EmptyBeacon } from '@/components/home/empty-beacon'
-import { MoneyValue } from '@/components/money/money-value'
+import { IncomeCard } from '@/components/home/income-card'
 import { InstallCard } from '@/components/shell/install-card'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
 import {
   Card,
-  CardAction,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -21,6 +20,7 @@ import {
 import { BeaconSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { add, ZERO } from '@/domain/money'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
+import type { IncomeSource } from '@/domain/types'
 import type { DueItem } from '@/engine'
 import type { MonthSummary } from '@/engine'
 import { useCreateEntry } from '@/hooks/entries/use-create-entry'
@@ -43,7 +43,7 @@ export function TodayScreen() {
     calendarPeriodOf(todayIn('America/Sao_Paulo')),
   )
 
-  const { summary, isPending, isError, error, needsOnboarding } =
+  const { summary, input, isPending, isError, error, needsOnboarding } =
     useMonthSummary(period)
 
   return (
@@ -62,7 +62,7 @@ export function TodayScreen() {
       {!isPending && isError ? <ErrorState message={error?.message} /> : null}
       {!isPending && !isError && needsOnboarding ? <EmptyBeacon /> : null}
       {!isPending && !isError && !needsOnboarding && summary ? (
-        <LoadedState summary={summary} />
+        <LoadedState summary={summary} sources={input?.incomeSources} />
       ) : null}
     </PageContainer>
   )
@@ -100,7 +100,14 @@ function ErrorState({ message }: { message?: string }) {
   )
 }
 
-function LoadedState({ summary }: { summary: MonthSummary }) {
+function LoadedState({
+  summary,
+  sources,
+}: {
+  summary: MonthSummary
+  /* Já vêm do `useMonthSummary`: nenhuma leitura extra no Firestore. */
+  sources?: readonly IncomeSource[]
+}) {
   const create = useCreateEntry()
 
   /*
@@ -184,24 +191,12 @@ function LoadedState({ summary }: { summary: MonthSummary }) {
           settling={create.isPending}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Entrou este mês
-            </CardTitle>
-            <CardDescription>
-              {summary.income.lines.length}{' '}
-              {summary.income.lines.length === 1 ? 'fonte' : 'fontes'} de renda
-            </CardDescription>
-            <CardAction>
-              <MoneyValue
-                cents={summary.totals.consideredIncomeCents}
-                size="lg"
-                tone="positive"
-              />
-            </CardAction>
-          </CardHeader>
-        </Card>
+        <IncomeCard
+          lines={summary.income.lines}
+          totalCents={summary.totals.consideredIncomeCents}
+          cycle={summary.cycle}
+          sources={sources}
+        />
 
         {covenant ? (
           <CommitmentCard

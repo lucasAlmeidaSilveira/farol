@@ -12,10 +12,13 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -25,8 +28,15 @@ import {
   groupCatalog,
   searchCatalog,
 } from '@/domain/catalog'
+import {
+  installmentAmount,
+  installmentUntil,
+  MAX_INSTALLMENTS,
+} from '@/domain/installments'
 import { type Cents, cents, ZERO } from '@/domain/money'
+import type { Period } from '@/domain/period'
 import type { DueRule } from '@/domain/types'
+import { formatPeriod } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import {
@@ -53,19 +63,30 @@ export type AddExpenseSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   saving?: boolean
+  /** O mês de início da vigência, para prever quando o parcelamento acaba. */
+  period: Period
   onAdd: (bill: {
     label: string
+    /** Já é o valor MENSAL: numa compra parcelada, o total dividido. */
     amountCents: Cents
     dueRule: DueRule | null
+    installments: number | null
   }) => void
 }
 
-type Draft = { label: string; amountCents: Cents; due: DueRuleValue }
+type Draft = {
+  label: string
+  amountCents: Cents
+  due: DueRuleValue
+  /** Texto cru do campo de parcelas. `''` = não é compra parcelada. */
+  installments: string
+}
 
 export function AddExpenseSheet({
   open,
   onOpenChange,
   saving = false,
+  period,
   onAdd,
 }: AddExpenseSheetProps) {
   const [query, setQuery] = useState('')
@@ -81,6 +102,7 @@ export function AddExpenseSheet({
       label: item.name,
       amountCents: cents(item.suggestedCents),
       due: emptyDueRule,
+      installments: '',
     })
   }
 
@@ -91,6 +113,25 @@ export function AddExpenseSheet({
   }
 
   if (draft) {
+    const isInstallment = draft.installments !== ''
+    const count = Number(draft.installments)
+    const validCount =
+      !isInstallment ||
+      (Number.isInteger(count) && count >= 1 && count <= MAX_INSTALLMENTS)
+
+    /*
+      Numa compra parcelada o campo de valor significa o TOTAL; o que vai para o
+      plano é o mensal. O modelo guarda um único valor por mês, então a soma das
+      parcelas pode ficar alguns centavos abaixo do total digitado — a prévia
+      mostra o total resultante em vez de esconder a diferença.
+    */
+    const usable = isInstallment && validCount && count > 0
+    const monthlyCents = usable
+      ? installmentAmount(draft.amountCents, count)
+      : draft.amountCents
+    const plannedTotalCents = usable ? cents(monthlyCents * count) : ZERO
+    const lastPeriod = usable ? installmentUntil(period, count) : null
+
     return (
       <Sheet open={open} onOpenChange={(next) => (next ? null : close())}>
         <SheetContent side="bottom">
@@ -101,7 +142,7 @@ export function AddExpenseSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex flex-col gap-6 overflow-y-auto px-4 pb-6">
+          <SheetBody className="gap-6">
             {/* Quando veio do catálogo o nome já está certo; quando a pessoa
                 escolheu digitar, ele precisa ser preenchido aqui. */}
             {draft.label === '' ? (
@@ -125,7 +166,9 @@ export function AddExpenseSheet({
 
             <div className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Valor mensal</span>
+                <span className="text-sm font-medium">
+                  {isInstallment ? 'Valor total da compra' : 'Valor mensal'}
+                </span>
                 <MoneyInput
                   value={draft.amountCents}
                   onChange={(amountCents) =>
@@ -152,6 +195,76 @@ export function AddExpenseSheet({
               </div>
             </div>
 
+            {/*
+              Compra parcelada não é um tipo novo: é a mesma conta fixa com
+              vigência fechada. A engine só materializa dentro da vigência,
+              então a última parcela sai do plano sozinha.
+            */}
+            <div className="flex flex-col gap-3">
+              <Chip
+                selected={isInstallment}
+                className="self-start"
+                onClick={() =>
+                  setDraft((current) =>
+                    current
+                      ? {
+                          ...current,
+                          installments: current.installments === '' ? '12' : '',
+                        }
+                      : current,
+                  )
+                }
+              >
+                Compra parcelada
+              </Chip>
+
+              {isInstallment ? (
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-medium">Em quantas vezes</span>
+                  <input
+                    inputMode="numeric"
+                    value={draft.installments}
+                    onChange={(event) =>
+                      setDraft((current) =>
+                        current
+                          ? {
+                              ...current,
+                              installments: event.target.value.slice(0, 3),
+                            }
+                          : current,
+                      )
+                    }
+                    aria-invalid={!validCount}
+                    className="border-input focus-visible:ring-ring h-12 w-24 rounded-lg border bg-transparent px-4 text-base outline-none focus-visible:ring-2"
+                  />
+                  {validCount ? null : (
+                    <p className="text-negative text-sm">
+                      Use um número de 1 a {MAX_INSTALLMENTS}.
+                    </p>
+                  )}
+                </label>
+              ) : null}
+
+              {usable && draft.amountCents > ZERO && lastPeriod ? (
+                <div className="text-muted-foreground bg-muted flex flex-col gap-1 rounded-lg px-4 py-3 text-sm">
+                  <p className="text-foreground font-medium">
+                    {count}x de <MoneyValue cents={monthlyCents} size="sm" />
+                  </p>
+                  <p>última em {formatPeriod(lastPeriod)}</p>
+
+                  {/* O centavo que sobra não some em silêncio. */}
+                  {plannedTotalCents !== draft.amountCents ? (
+                    <p className="text-balance">
+                      No plano isso soma{' '}
+                      <MoneyValue cents={plannedTotalCents} size="sm" /> — o
+                      modelo guarda um valor mensal só, então a diferença de
+                      centavos não cabe numa parcela maior.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
             {/* Vencimento é OPCIONAL. Quem preenche ganha o lembrete na tela
                 inicial; quem não preenche não é cobrado por isso. */}
             <DueRuleField
@@ -165,32 +278,35 @@ export function AddExpenseSheet({
               O valor sugerido é só um ponto de partida — preço de assinatura
               muda e varia por plano. Coloque o que sai da sua conta.
             </p>
+          </SheetBody>
 
-            <div className="flex flex-col gap-2">
-              <Button
-                size="block"
-                disabled={
-                  draft.amountCents === ZERO ||
-                  draft.label.trim() === '' ||
-                  !isValidDueRule(draft.due) ||
-                  saving
-                }
-                onClick={() => {
-                  onAdd({
-                    label: draft.label.trim(),
-                    amountCents: draft.amountCents,
-                    dueRule: toDueRule(draft.due),
-                  })
-                  close()
-                }}
-              >
-                {saving ? 'Salvando…' : 'Adicionar'}
-              </Button>
-              <Button variant="quiet" onClick={() => setDraft(null)}>
-                ← Escolher outro
-              </Button>
-            </div>
-          </div>
+          <SheetFooter>
+            <Button
+              size="block"
+              disabled={
+                monthlyCents === ZERO ||
+                draft.label.trim() === '' ||
+                !isValidDueRule(draft.due) ||
+                !validCount ||
+                saving
+              }
+              onClick={() => {
+                onAdd({
+                  label: draft.label.trim(),
+                  // Já é o mensal: o que a prévia mostrou é o que vai gravado.
+                  amountCents: monthlyCents,
+                  dueRule: toDueRule(draft.due),
+                  installments: usable ? count : null,
+                })
+                close()
+              }}
+            >
+              {saving ? 'Salvando…' : 'Adicionar'}
+            </Button>
+            <Button variant="quiet" onClick={() => setDraft(null)}>
+              ← Escolher outro
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     )
@@ -206,7 +322,7 @@ export function AddExpenseSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 overflow-y-auto px-4 pb-6">
+        <SheetBody>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -219,7 +335,12 @@ export function AddExpenseSheet({
             <button
               type="button"
               onClick={() =>
-                setDraft({ label: trimmed, amountCents: ZERO, due: emptyDueRule })
+                setDraft({
+                  label: trimmed,
+                  amountCents: ZERO,
+                  due: emptyDueRule,
+                  installments: '',
+                })
               }
               className="border-input hover:bg-muted animate-fade flex min-h-14 items-center gap-3 rounded-lg border border-dashed px-4 text-left transition-colors"
             >
@@ -303,14 +424,19 @@ export function AddExpenseSheet({
             <button
               type="button"
               onClick={() =>
-                setDraft({ label: '', amountCents: ZERO, due: emptyDueRule })
+                setDraft({
+                  label: '',
+                  amountCents: ZERO,
+                  due: emptyDueRule,
+                  installments: '',
+                })
               }
               className="text-muted-foreground hover:text-foreground min-h-12 text-sm transition-colors"
             >
               Não achei o meu — quero digitar
             </button>
           ) : null}
-        </div>
+        </SheetBody>
       </SheetContent>
     </Sheet>
   )

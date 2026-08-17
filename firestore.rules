@@ -247,7 +247,8 @@ service cloud.firestore {
       // ------------------------------------------------------- incomeSources
       function validIncomeSource() {
         return onlyFields(['name', 'kind', 'forecastCents', 'confidence',
-                           'recurrence', 'expectedDay', 'memberId', 'archivedAt',
+                           'recurrence', 'expectedDay', 'expectedBusinessDay',
+                           'memberId', 'archivedAt',
                            'createdAt', 'updatedAt'])
           && hasFields(['name', 'kind', 'forecastCents', 'confidence',
                         'createdAt'])
@@ -257,7 +258,15 @@ service cloud.firestore {
           && incoming().confidence in ['exact', 'estimated']
           && (!('expectedDay' in incoming())
               || incoming().expectedDay == null
-              || intBetween(incoming().expectedDay, 1, 31));
+              || intBetween(incoming().expectedDay, 1, 31))
+          // Nenhum mês do calendário passa de 23 dias úteis.
+          && (!('expectedBusinessDay' in incoming())
+              || incoming().expectedBusinessDay == null
+              || intBetween(incoming().expectedBusinessDay, 1, 23))
+          // Excludentes, como dueDay e dueBusinessDay: com os dois preenchidos
+          // a leitura teria de escolher um, e a escolha seria invisível.
+          && !(incoming().get('expectedDay', null) != null
+               && incoming().get('expectedBusinessDay', null) != null);
       }
 
       match /incomeSources/{sourceId} {

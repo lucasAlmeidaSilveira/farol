@@ -96,19 +96,41 @@ export const memberSchema = z.object({
 
 // ------------------------------------------------------------- IncomeSource
 
-export const incomeSourceSchema = z.object({
-  id: idSchema<'incomeSource'>(),
-  name: nameSchema,
-  kind: z.enum(['fixed', 'variable']),
-  forecastCents: nonNegativeCentsSchema,
-  confidence: z.enum(['exact', 'estimated']),
-  recurrence: recurrenceRuleSchema.nullable(),
-  expectedDay: z.number().int().min(1).max(31).nullable(),
-  memberId: idSchema<'member'>().nullable(),
-  archivedAt: localDateSchema.nullable(),
-  createdAt: instantSchema,
-  updatedAt: instantSchema,
-})
+export const incomeSourceSchema = z
+  .object({
+    id: idSchema<'incomeSource'>(),
+    name: nameSchema,
+    kind: z.enum(['fixed', 'variable']),
+    forecastCents: nonNegativeCentsSchema,
+    confidence: z.enum(['exact', 'estimated']),
+    recurrence: recurrenceRuleSchema.nullable(),
+    expectedDay: z.number().int().min(1).max(31).nullable(),
+    /*
+      `nullish`, e não `nullable`: fontes criadas antes deste campo existir não
+      têm a chave, e `parseSnapshot` DESCARTA documento que não valida. Exigir a
+      chave faria a renda de todo mundo sumir da tela na primeira abertura
+      depois do deploy — sem erro visível, só um plano vazio.
+    */
+    expectedBusinessDay: z
+      .number()
+      .int()
+      .min(1)
+      .max(23)
+      .nullish()
+      .transform((value) => value ?? null),
+    memberId: idSchema<'member'>().nullable(),
+    archivedAt: localDateSchema.nullable(),
+    createdAt: instantSchema,
+    updatedAt: instantSchema,
+  })
+  .superRefine((value, ctx) =>
+    exclusiveDays(
+      value.expectedDay,
+      value.expectedBusinessDay,
+      'expectedBusinessDay',
+      ctx,
+    ),
+  )
 
 // --------------------------------------------------------------- Commitment
 
@@ -153,58 +175,76 @@ const commitmentCommonShape = {
   updatedAt: instantSchema,
 }
 
-/** Os dois campos de vencimento são excludentes: no máximo um preenchido. */
-const exclusiveDue = <T extends { dueDay: number | null; dueBusinessDay: number | null }>(
-  value: T,
+/**
+ * Um par "dia do mês / dia útil" admite no máximo um preenchido.
+ *
+ * Vale para vencimento de compromisso e para o dia em que a renda cai — com os
+ * dois preenchidos a leitura teria de escolher um, e a escolha seria invisível
+ * para quem cadastrou.
+ */
+const exclusiveDays = (
+  day: number | null,
+  businessDay: number | null,
+  path: string,
   ctx: z.RefinementCtx,
 ) => {
-  if (value.dueDay !== null && value.dueBusinessDay !== null) {
+  if (day !== null && businessDay !== null) {
     ctx.addIssue({
       code: 'custom',
-      path: ['dueBusinessDay'],
-      message: 'Escolha vencimento por dia do mês OU por dia útil, não os dois',
+      path: [path],
+      message: 'Escolha por dia do mês OU por dia útil, não os dois',
     })
   }
 }
 
+const exclusiveDue = <
+  T extends { dueDay: number | null; dueBusinessDay: number | null },
+>(
+  value: T,
+  ctx: z.RefinementCtx,
+) => exclusiveDays(value.dueDay, value.dueBusinessDay, 'dueBusinessDay', ctx)
+
 export const commitmentSchema = z
   .discriminatedUnion('type', [
-  z.object({
-    ...commitmentCommonShape,
-    type: z.literal('fixedAmount'),
-    amountCents: nonNegativeCentsSchema,
-  }),
+    z.object({
+      ...commitmentCommonShape,
+      type: z.literal('fixedAmount'),
+      amountCents: nonNegativeCentsSchema,
+    }),
 
-  z.object({
-    ...commitmentCommonShape,
-    type: z.literal('proportional'),
-    base: commitmentBaseSchema,
-    parts: z
-      .array(commitmentPartSchema)
-      .min(1)
-      .max(10)
-      .superRefine((parts, ctx) => {
-        if (new Set(parts.map((part) => part.id)).size !== parts.length) {
-          ctx.addIssue({ code: 'custom', message: 'IDs de parcela duplicados' })
-        }
-        if (parts.reduce((sum, part) => sum + part.rateBp, 0) > 10_000) {
-          ctx.addIssue({
-            code: 'custom',
-            message: 'A soma das alíquotas passa de 100%',
-          })
-        }
-      }),
-    floorCents: nonNegativeCentsSchema.nullable(),
-    ceilingCents: nonNegativeCentsSchema.nullable(),
-  }),
+    z.object({
+      ...commitmentCommonShape,
+      type: z.literal('proportional'),
+      base: commitmentBaseSchema,
+      parts: z
+        .array(commitmentPartSchema)
+        .min(1)
+        .max(10)
+        .superRefine((parts, ctx) => {
+          if (new Set(parts.map((part) => part.id)).size !== parts.length) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'IDs de parcela duplicados',
+            })
+          }
+          if (parts.reduce((sum, part) => sum + part.rateBp, 0) > 10_000) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'A soma das alíquotas passa de 100%',
+            })
+          }
+        }),
+      floorCents: nonNegativeCentsSchema.nullable(),
+      ceilingCents: nonNegativeCentsSchema.nullable(),
+    }),
 
-  z.object({
-    ...commitmentCommonShape,
-    type: z.literal('savingsGoal'),
-    targetCents: positiveCentsSchema,
-    targetPeriod: periodSchema,
-    minContributionCents: nonNegativeCentsSchema.nullable(),
-  }),
+    z.object({
+      ...commitmentCommonShape,
+      type: z.literal('savingsGoal'),
+      targetCents: positiveCentsSchema,
+      targetPeriod: periodSchema,
+      minContributionCents: nonNegativeCentsSchema.nullable(),
+    }),
   ])
   .superRefine(exclusiveDue)
 

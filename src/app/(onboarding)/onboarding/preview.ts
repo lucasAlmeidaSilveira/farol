@@ -58,6 +58,7 @@ export function previewSummary(state: OnboardingState): MonthSummary {
       confidence: state.incomeConfidence,
       recurrence: { from: period, until: null, frequency: { type: 'monthly' } },
       expectedDay: null,
+      expectedBusinessDay: null,
       ...AUDIT,
     },
   ]

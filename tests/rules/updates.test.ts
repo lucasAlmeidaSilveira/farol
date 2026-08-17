@@ -191,6 +191,31 @@ describe('editar a renda', () => {
       }),
     )
   })
+
+  /*
+    A operação exata da tela: a fonte foi criada com `expectedDay` e passa a
+    valer por dia útil. É `update`, e não `create` — `request.resource.data` é o
+    documento MESCLADO, então o campo novo precisa estar em `onlyFields` mesmo
+    não vindo no payload da escrita.
+  */
+  it('troca dia do mês por dia útil', async () => {
+    await assertSucceeds(
+      updateDoc(doc(asOwner(), 'spaces', SPACE, 'incomeSources', 'salary'), {
+        expectedDay: null,
+        expectedBusinessDay: 5,
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('NÃO aceita ficar com dia do mês e dia útil ao mesmo tempo', async () => {
+    await assertFails(
+      updateDoc(doc(asOwner(), 'spaces', SPACE, 'incomeSources', 'salary'), {
+        expectedBusinessDay: 5,
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
 })
 
 describe('editar um lançamento', () => {

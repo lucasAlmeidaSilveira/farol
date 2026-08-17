@@ -109,7 +109,22 @@ export type IncomeSource = {
   readonly confidence: 'exact' | 'estimated'
   /** `null` = fonte avulsa: só existe através de lançamentos. */
   readonly recurrence: RecurrenceRule | null
+  /**
+   * Dia do calendário em que a renda cai. Excludente com `expectedBusinessDay`.
+   *
+   * São dois campos anuláveis pela mesma razão de `dueDay`/`dueBusinessDay` nos
+   * compromissos: é a forma que o Firestore e as Security Rules validam bem. A
+   * união derivada sai de `expectedRuleOf`.
+   */
   readonly expectedDay: number | null
+  /**
+   * Recebimento no N-ésimo dia útil. Excludente com `expectedDay`.
+   *
+   * Folha de pagamento usa esta convenção o tempo todo, e ela produz uma data
+   * DIFERENTE de "dia N" quase todo mês — o quinto dia útil de agosto de 2026 é
+   * dia 7, porque o mês começa num sábado.
+   */
+  readonly expectedBusinessDay: number | null
   readonly memberId: MemberId | null
   readonly archivedAt: LocalDate | null
   readonly createdAt: Instant
@@ -311,16 +326,28 @@ export type CloseSnapshot = {
   readonly summary: unknown
 }
 
-/** A união derivada dos dois campos anuláveis. `dueDay` tem precedência. */
-export function dueRuleOf(commitment: {
-  dueDay: number | null
-  dueBusinessDay: number | null
-}): DueRule | null {
-  if (commitment.dueDay !== null) {
-    return { type: 'dayOfMonth', day: commitment.dueDay }
-  }
-  if (commitment.dueBusinessDay !== null) {
-    return { type: 'businessDay', n: commitment.dueBusinessDay }
-  }
+/**
+ * A união derivada de um par de campos anuláveis. O dia do calendário tem
+ * precedência — se ambos vierem preenchidos, o documento já está inconsistente
+ * e as rules recusariam a escrita; aqui o que importa é não travar a leitura.
+ */
+function dayRuleOf(
+  day: number | null,
+  businessDay: number | null,
+): DueRule | null {
+  if (day !== null) return { type: 'dayOfMonth', day }
+  if (businessDay !== null) return { type: 'businessDay', n: businessDay }
   return null
 }
+
+/** Quando o compromisso vence. */
+export const dueRuleOf = (commitment: {
+  dueDay: number | null
+  dueBusinessDay: number | null
+}): DueRule | null => dayRuleOf(commitment.dueDay, commitment.dueBusinessDay)
+
+/** Quando a renda cai. */
+export const expectedRuleOf = (source: {
+  expectedDay: number | null
+  expectedBusinessDay: number | null
+}): DueRule | null => dayRuleOf(source.expectedDay, source.expectedBusinessDay)

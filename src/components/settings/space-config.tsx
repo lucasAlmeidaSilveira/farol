@@ -90,8 +90,10 @@ function CyclePreview({ day }: { day: number }) {
 }
 
 const POLICY_COPY = {
-  confirmedOnly: 'Freelas entram na conta quando você registra o recebimento. O número começa menor e sobe conforme o dinheiro chega.',
-  includeForecast: 'Freelas entram já na previsão. O número começa maior, mas conta com dinheiro que ainda não chegou.',
+  confirmedOnly:
+    'Freelas entram na conta quando você registra o recebimento. O número começa menor e sobe conforme o dinheiro chega.',
+  includeForecast:
+    'Freelas entram já na previsão. O número começa maior, mas conta com dinheiro que ainda não chegou.',
 } as const
 
 export function IncomePolicyCard({ config }: { config: SpaceConfig }) {
@@ -106,7 +108,8 @@ export function IncomePolicyCard({ config }: { config: SpaceConfig }) {
           onValueChange={(next: string) => {
             if (next !== policy) {
               edit.mutate({
-                variableIncomePolicy: next as SpaceConfig['variableIncomePolicy'],
+                variableIncomePolicy:
+                  next as SpaceConfig['variableIncomePolicy'],
               })
             }
           }}

@@ -4,8 +4,10 @@ import { MoneyValue } from '@/components/money/money-value'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -51,7 +53,7 @@ export function IncomeImpactSheet({
           <SheetDescription>Veja o que isso muda no seu mês.</SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 overflow-y-auto px-4 pb-6">
+        <SheetBody className="gap-6">
           <p className="text-center">
             <MoneyValue cents={impact.incomeCents} size="xl" tone="positive" />
           </p>
@@ -91,18 +93,18 @@ export function IncomeImpactSheet({
               vão para o compromisso e o resto fica com você.
             </p>
           ) : null}
+        </SheetBody>
 
-          <div className="flex flex-col gap-2">
-            <Button size="block" onClick={() => onOpenChange(false)}>
-              Beleza
+        <SheetFooter>
+          <Button size="block" onClick={() => onOpenChange(false)}>
+            Beleza
+          </Button>
+          {onUndo ? (
+            <Button variant="quiet" onClick={onUndo}>
+              Desfazer
             </Button>
-            {onUndo ? (
-              <Button variant="quiet" onClick={onUndo}>
-                Desfazer
-              </Button>
-            ) : null}
-          </div>
-        </div>
+          ) : null}
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

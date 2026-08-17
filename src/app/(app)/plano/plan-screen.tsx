@@ -10,10 +10,15 @@ import { EditAmountSheet } from '@/components/plan/edit-amount-sheet'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { installmentProgress } from '@/domain/installments'
 import type { BasisPoints } from '@/domain/money'
 import { add, type Cents, formatRate, ZERO } from '@/domain/money'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
-import type { CommitmentId, IncomeSource } from '@/domain/types'
+import {
+  type CommitmentId,
+  expectedRuleOf,
+  type IncomeSource,
+} from '@/domain/types'
 import type { CommitmentLine } from '@/engine'
 import {
   type EditScope,
@@ -43,7 +48,7 @@ export function PlanScreen() {
     calendarPeriodOf(todayIn('America/Sao_Paulo')),
   )
 
-  const { summary, isPending, isError } = useMonthSummary(period)
+  const { summary, input, isPending, isError } = useMonthSummary(period)
   const { data: sources } = useIncomeSources()
 
   const editIncome = useEditIncomeForecast(period)
@@ -63,12 +68,39 @@ export function PlanScreen() {
   const proportional = summary.commitments.filter(
     (line) => line.type === 'proportional',
   )
-  const bills = summary.commitments.filter(
-    (line) => line.type === 'fixedAmount',
+  /*
+    A vigência não vem na `CommitmentLine` — ela é derivada e a engine já
+    resolveu se o mês entra ou não. Para distinguir "conta fixa" de "parcela"
+    é preciso o compromisso cru, que o `useMonthSummary` já carrega e devolve
+    em `input`. Nenhuma leitura extra no Firestore.
+  */
+  const rawById = new Map(
+    (input?.commitments ?? []).map((commitment) => [commitment.id, commitment]),
   )
-  // Soma exatamente as linhas listadas abaixo dela: um subtotal que não bate
-  // com o que está logo acima é pior do que subtotal nenhum.
+
+  const installmentOf = (line: CommitmentLine) => {
+    const raw = rawById.get(line.commitmentId)
+    if (!raw || raw.recurrence.until === null) return null
+
+    const progress = installmentProgress(raw.recurrence, period)
+    return progress && { ...progress, until: raw.recurrence.until }
+  }
+
+  const fixed = summary.commitments
+    .filter((line) => line.type === 'fixedAmount')
+    .map((line) => ({ line, installment: installmentOf(line) }))
+
+  const bills = fixed
+    .filter((item) => item.installment === null)
+    .map((item) => item.line)
+  const installments = fixed.filter((item) => item.installment !== null)
+
+  // Cada subtotal soma exatamente as linhas listadas abaixo dele: um subtotal
+  // que não bate com o que está logo acima é pior do que subtotal nenhum.
   const billsTotal = add(...bills.map((line) => line.consideredCents))
+  const installmentsTotal = add(
+    ...installments.map((item) => item.line.consideredCents),
+  )
 
   return (
     <>
@@ -172,6 +204,47 @@ export function PlanScreen() {
                 ))
               )}
             </Section>
+
+            {/*
+              Parcela tem seção própria porque ela responde a outra pergunta.
+              Conta fixa é "quanto sai todo mês, para sempre"; parcela é "quanto
+              falta até acabar" — e ver que acaba é justamente o alívio que uma
+              compra parcelada precisa dar.
+            */}
+            {installments.length > 0 ? (
+              <Section
+                title="Parcelas"
+                hint="Saem do plano sozinhas quando a última for paga."
+                total={installmentsTotal}
+              >
+                {installments.map(({ line, installment }) => (
+                  <Row
+                    key={line.commitmentId}
+                    label={line.name}
+                    hint={
+                      installment
+                        ? `parcela ${installment.index} de ${installment.total} · última em ${formatPeriod(
+                            installment.until,
+                            { currentYear: new Date().getFullYear() },
+                          )}`
+                        : undefined
+                    }
+                    amountCents={line.consideredCents}
+                    onRemove={() =>
+                      void confirmRemove(
+                        line.commitmentId,
+                        line.name,
+                        (scope) =>
+                          removeCommitment.mutateAsync({
+                            commitmentId: line.commitmentId,
+                            scope,
+                          }),
+                      )
+                    }
+                  />
+                ))}
+              </Section>
+            ) : null}
           </div>
 
           {/* No desktop o resumo vira um card que acompanha a rolagem, ao lado
@@ -200,6 +273,7 @@ export function PlanScreen() {
         open={addingBill}
         onOpenChange={setAddingBill}
         saving={addBill.isPending}
+        period={period}
         onAdd={(bill) => void addBill.mutateAsync(bill)}
       />
 
@@ -210,7 +284,7 @@ export function PlanScreen() {
           mode="income"
           initialName={editingSource.name}
           initialCents={editingSource.forecastCents}
-          initialExpectedDay={editingSource.expectedDay}
+          initialExpectedRule={expectedRuleOf(editingSource)}
           saving={editIncome.isPending}
           onSave={(changes, scope) => {
             void editIncome
@@ -218,7 +292,7 @@ export function PlanScreen() {
                 source: editingSource,
                 name: changes.name,
                 amountCents: changes.amountCents,
-                expectedDay: changes.expectedDay,
+                expectedRule: changes.expectedRule,
                 scope,
               })
               .then(() => setEditingSource(null))

@@ -175,6 +175,13 @@ export function fixedBillDraft(
   name: string,
   amountCents: Cents,
   dueDay: number | null,
+  /**
+   * Mês da última cobrança. `null` = conta sem fim.
+   *
+   * É o que transforma a mesma estrutura numa compra parcelada: a engine só
+   * materializa dentro da vigência, então a última parcela sai do plano sozinha.
+   */
+  until: Period | null = null,
 ): CommitmentDraft<FixedAmountCommitment> {
   return {
     type: 'fixedAmount',
@@ -182,7 +189,7 @@ export function fixedBillDraft(
     description: null,
     order: 100,
     preset: 'custom',
-    recurrence: monthlyFrom(from),
+    recurrence: { from, until, frequency: { type: 'monthly' } },
     amountCents,
     dueDay,
     dueBusinessDay: null,

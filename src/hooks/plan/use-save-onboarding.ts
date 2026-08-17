@@ -12,6 +12,7 @@ import {
 } from '@/data/payloads'
 import type { Cents } from '@/domain/money'
 import { calendarPeriodOf, type Period, todayIn } from '@/domain/period'
+import type { DueRule } from '@/domain/types'
 import { useSession } from '@/providers/auth-provider'
 
 /**
@@ -26,7 +27,8 @@ export type OnboardingDraft = {
   /** Renda fixa mensal. Vem de uma faixa, então quase sempre é estimada. */
   incomeCents: Cents
   incomeConfidence: 'exact' | 'estimated'
-  incomeDay: number | null
+  /** Quando a renda cai — por dia do mês ou por dia útil. */
+  expectedRule: DueRule | null
   /** Liga o preset da Comunhão de Bens. */
   withCovenant: boolean
   bills: { label: string; amountCents: Cents; dueDay: number | null }[]
@@ -52,7 +54,7 @@ export function useSaveOnboarding() {
           {
             amountCents: draft.incomeCents,
             confidence: draft.incomeConfidence,
-            expectedDay: draft.incomeDay,
+            expectedRule: draft.expectedRule,
           },
           from,
           stamp,

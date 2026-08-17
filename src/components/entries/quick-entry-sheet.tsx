@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
+  SheetBody,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -147,7 +149,7 @@ export function QuickEntrySheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-5 overflow-y-auto px-4 pb-6">
+        <SheetBody>
           <Tabs
             value={kind}
             onValueChange={(next: string) =>
@@ -210,12 +212,14 @@ export function QuickEntrySheet({
               className="h-12 text-base"
             />
           </div>
+        </SheetBody>
 
-          {/*
-            O rótulo muda durante a escrita, como nos outros sheets do app.
-            Só desabilitar deixava o gesto mais usado do Farol sem resposta
-            nenhuma — a pessoa toca, nada acontece visivelmente, e toca de novo.
-          */}
+        {/*
+          O rótulo muda durante a escrita, como nos outros sheets do app.
+          Só desabilitar deixava o gesto mais usado do Farol sem resposta
+          nenhuma — a pessoa toca, nada acontece visivelmente, e toca de novo.
+        */}
+        <SheetFooter>
           <Button
             size="block"
             variant={kind === 'income' ? 'accent' : 'default'}
@@ -224,7 +228,7 @@ export function QuickEntrySheet({
           >
             {create.isPending ? 'Salvando…' : 'Salvar'}
           </Button>
-        </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

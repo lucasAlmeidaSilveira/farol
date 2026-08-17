@@ -20,11 +20,13 @@ import {
 import {
   commitmentOverrideAmount,
   commitmentOverrideOff,
+  expectedDayFields,
   fixedBillPayload,
   incomeSourceOverride,
   periodOverridePayload,
 } from '@/data/payloads'
 import { errorMessage } from '@/data/session'
+import { installmentUntil } from '@/domain/installments'
 import type { Cents } from '@/domain/money'
 import { addMonths, comparePeriods, type Period } from '@/domain/period'
 import type {
@@ -63,11 +65,11 @@ export function useEditIncomeForecast(period: Period) {
       source: IncomeSource
       name: string
       amountCents: Cents
-      expectedDay: number | null
+      expectedRule: DueRule | null
       scope: EditScope
     }
   >({
-    mutationFn: async ({ source, name, amountCents, expectedDay, scope }) => {
+    mutationFn: async ({ source, name, amountCents, expectedRule, scope }) => {
       if (!spaceId) throw new Error('Espaço não carregado')
 
       try {
@@ -76,10 +78,16 @@ export function useEditIncomeForecast(period: Period) {
           dia por competência. Por isso ele é gravado sempre, mesmo quando o
           escopo do VALOR é só este mês. A UI diz isso explicitamente.
         */
-        if (expectedDay !== source.expectedDay || name !== source.name) {
+        const fields = expectedDayFields(expectedRule)
+
+        if (
+          fields.expectedDay !== source.expectedDay ||
+          fields.expectedBusinessDay !== source.expectedBusinessDay ||
+          name !== source.name
+        ) {
           await updateDoc(incomeSourceDoc(spaceId, source.id), {
             name,
-            expectedDay,
+            ...fields,
             updatedAt: serverTimestamp(),
           })
         }
@@ -137,6 +145,7 @@ export function useEditIncomeForecast(period: Period) {
             frequency: source.recurrence.frequency,
           },
           expectedDay: source.expectedDay,
+          expectedBusinessDay: source.expectedBusinessDay,
           memberId: null,
           archivedAt: null,
           createdAt: serverTimestamp(),
@@ -158,7 +167,13 @@ export function useAddFixedBill(period: Period) {
   return useMutation<
     void,
     Error,
-    { label: string; amountCents: Cents; dueRule: DueRule | null }
+    {
+      label: string
+      amountCents: Cents
+      dueRule: DueRule | null
+      /** Compra parcelada: quantas vezes. `null` = conta sem fim. */
+      installments?: number | null
+    }
   >({
     mutationFn: async (bill) => {
       if (!spaceId) throw new Error('Espaço não carregado')
@@ -166,7 +181,16 @@ export function useAddFixedBill(period: Period) {
       try {
         await setDoc(
           doc(commitmentsCollection(spaceId)),
-          fixedBillPayload(period, bill, serverTimestamp()),
+          fixedBillPayload(
+            period,
+            {
+              ...bill,
+              until: bill.installments
+                ? installmentUntil(period, bill.installments)
+                : null,
+            },
+            serverTimestamp(),
+          ),
         )
       } catch (error) {
         toast.error(errorMessage(error))
@@ -302,7 +326,7 @@ export function useAddIncomeSource(period: Period) {
       name: string
       kind: 'fixed' | 'variable'
       amountCents: Cents
-      expectedDay: number | null
+      expectedRule: DueRule | null
     }
   >({
     mutationFn: async (income) => {
@@ -320,7 +344,7 @@ export function useAddIncomeSource(period: Period) {
             until: null,
             frequency: { type: 'monthly' },
           },
-          expectedDay: income.expectedDay,
+          ...expectedDayFields(income.expectedRule),
           memberId: null,
           archivedAt: null,
           createdAt: serverTimestamp(),

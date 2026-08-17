@@ -106,11 +106,42 @@ function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
+/**
+ * O corpo rolável do sheet — tudo menos a ação.
+ *
+ * `min-h-0` não é detalhe: sem ele, um item de flex se recusa a encolher abaixo
+ * do próprio conteúdo, o `overflow-y-auto` nunca chega a rolar e o sheet inteiro
+ * estoura a altura máxima.
+ */
+function SheetBody({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="sheet-body"
+      className={cn(
+        'flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+/**
+ * A barra de ação, fixa no rodapé do sheet.
+ *
+ * Com o botão dentro da área de rolagem, um formulário alto empurra "Salvar"
+ * para fora da tela. No celular a barra de rolagem e o gesto denunciam que há
+ * mais conteúdo; no desktop, não — a pessoa vê um formulário aparentemente
+ * completo, sem nenhuma ação, e não descobre que precisa rolar.
+ */
 function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="sheet-footer"
-      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
+      className={cn(
+        'border-border bg-card/95 mt-auto flex shrink-0 flex-col gap-2 border-t px-4 pt-3 pb-4 backdrop-blur',
+        className,
+      )}
       {...props}
     />
   )
@@ -144,6 +175,7 @@ function SheetDescription({
 
 export {
   Sheet,
+  SheetBody,
   SheetClose,
   SheetContent,
   SheetDescription,

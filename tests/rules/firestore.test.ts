@@ -474,6 +474,49 @@ describe('compromissos e fontes de renda', () => {
       }),
     )
   })
+
+  it('aceita renda que cai no N-ésimo dia útil', async () => {
+    await assertSucceeds(
+      setDoc(doc(asOwner(), 'spaces', SPACE, 'incomeSources', 'folha'), {
+        name: 'Salário',
+        kind: 'fixed',
+        forecastCents: 325000,
+        confidence: 'exact',
+        recurrence: MONTHLY,
+        expectedBusinessDay: 5,
+        createdAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('NÃO aceita dia útil acima de 23', async () => {
+    await assertFails(
+      setDoc(doc(asOwner(), 'spaces', SPACE, 'incomeSources', 'invalida'), {
+        name: 'Salário',
+        kind: 'fixed',
+        forecastCents: 325000,
+        confidence: 'exact',
+        recurrence: MONTHLY,
+        expectedBusinessDay: 24,
+        createdAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('NÃO aceita dia do mês e dia útil ao mesmo tempo', async () => {
+    await assertFails(
+      setDoc(doc(asOwner(), 'spaces', SPACE, 'incomeSources', 'ambigua'), {
+        name: 'Salário',
+        kind: 'fixed',
+        forecastCents: 325000,
+        confidence: 'exact',
+        recurrence: MONTHLY,
+        expectedDay: 5,
+        expectedBusinessDay: 5,
+        createdAt: serverTimestamp(),
+      }),
+    )
+  })
 })
 
 describe('perfil do usuário', () => {

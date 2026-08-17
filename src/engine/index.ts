@@ -6,6 +6,7 @@ export {
   dueSchedule,
   type DueStatus,
   outstandingTotal,
+  resolveWithin,
   SOON_THRESHOLD_DAYS,
 } from './due'
 export { consolidateIncome } from './income'
