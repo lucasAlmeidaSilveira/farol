@@ -11,7 +11,7 @@ import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { BasisPoints } from '@/domain/money'
-import { type Cents, formatRate, ZERO } from '@/domain/money'
+import { add, type Cents, formatRate, ZERO } from '@/domain/money'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
 import type { CommitmentId, IncomeSource } from '@/domain/types'
 import type { CommitmentLine } from '@/engine'
@@ -25,7 +25,7 @@ import {
 } from '@/hooks/plan/use-edit-plan'
 import { useIncomeSources } from '@/hooks/plan/use-plan'
 import { useMonthSummary } from '@/hooks/summary/use-month-summary'
-import { formatPeriod } from '@/lib/format'
+import { formatPeriod, spokenBRL } from '@/lib/format'
 
 /**
  * A tela PLANO. É aqui que o produto vira um feedback loop.
@@ -66,6 +66,9 @@ export function PlanScreen() {
   const bills = summary.commitments.filter(
     (line) => line.type === 'fixedAmount',
   )
+  // Soma exatamente as linhas listadas abaixo dela: um subtotal que não bate
+  // com o que está logo acima é pior do que subtotal nenhum.
+  const billsTotal = add(...bills.map((line) => line.consideredCents))
 
   return (
     <>
@@ -135,7 +138,10 @@ export function PlanScreen() {
               </Section>
             ) : null}
 
-            <Section title="Contas fixas">
+            <Section
+              title="Contas fixas"
+              total={bills.length > 0 ? billsTotal : undefined}
+            >
               <AddRowButton onClick={() => setAddingBill(true)}>
                 Adicionar conta
               </AddRowButton>
@@ -182,7 +188,6 @@ export function PlanScreen() {
       </PageContainer>
 
       <SlackFooter availableCents={summary.totals.availableToSpendCents} />
-
 
       <AddIncomeSheet
         open={addingIncome}
@@ -310,22 +315,43 @@ function AddRowButton({
   )
 }
 
+/**
+ * O subtotal fica no cabeçalho da seção, e não num card lateral, por uma razão
+ * de alcance: o card `SlackSummary` é `lg:block`, some no celular, e a pessoa
+ * que quer saber quanto pesam as contas fixas está justamente olhando a lista
+ * delas. Aqui o número aparece nas duas larguras sem ramificação responsiva.
+ */
 function Section({
   title,
   hint,
+  total,
   children,
 }: {
   title: string
   hint?: string
+  /** Omita quando a seção está vazia: "R$ 0,00" ao lado de "nada cadastrado". */
+  total?: Cents
   children: React.ReactNode
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-eyebrow text-muted-foreground uppercase">
-          {title}
-        </h2>
-        {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-eyebrow text-muted-foreground uppercase">
+            {title}
+          </h2>
+          {hint ? (
+            <p className="text-muted-foreground text-xs">{hint}</p>
+          ) : null}
+        </div>
+
+        {total !== undefined ? (
+          <MoneyValue
+            cents={total}
+            size="sm"
+            srLabel={`Total de ${title}: ${spokenBRL(total)}`}
+          />
+        ) : null}
       </div>
       <div className="flex flex-col gap-2">{children}</div>
     </section>

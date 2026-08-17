@@ -19,10 +19,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { BeaconSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { type Cents, ZERO } from '@/domain/money'
+import { add, ZERO } from '@/domain/money'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
 import type { DueItem } from '@/engine'
-import type { CommitmentLine, MonthSummary } from '@/engine'
+import type { MonthSummary } from '@/engine'
 import { useCreateEntry } from '@/hooks/entries/use-create-entry'
 import { useMonthSummary } from '@/hooks/summary/use-month-summary'
 import { formatPeriod } from '@/lib/format'
@@ -123,8 +123,10 @@ function LoadedState({ summary }: { summary: MonthSummary }) {
   const covenant = summary.commitments.find(
     (line) => line.type === 'proportional',
   )
-  const fixedTotal = sumOf(
-    summary.commitments.filter((line) => line.type !== 'proportional'),
+  const fixedTotal = add(
+    ...summary.commitments
+      .filter((line) => line.type !== 'proportional')
+      .map((line) => line.consideredCents),
   )
 
   const slices: Slice[] = [
@@ -218,6 +220,3 @@ function LoadedState({ summary }: { summary: MonthSummary }) {
     </div>
   )
 }
-
-const sumOf = (lines: readonly CommitmentLine[]): Cents =>
-  lines.reduce<number>((sum, line) => sum + line.consideredCents, 0) as Cents
