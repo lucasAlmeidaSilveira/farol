@@ -124,6 +124,23 @@ Este é um projeto pessoal, mas segue as convenções que valem para qualquer re
 - **Mexeu em `firestore.rules`?** `pnpm test:rules` também, e o deploy das rules acompanha o merge.
 - **Mensagem de commit** no imperativo, explicando **por quê** — o *o quê* já está no diff.
 
+## Trabalhando com agentes
+
+O repositório versiona as instruções que um agente de código precisa para não
+repetir decisões já fechadas. Elas viajam junto no clone:
+
+```
+AGENTS.md                    decisões, invariantes e armadilhas (CLAUDE.md aponta para cá)
+.claude/settings.json        permissões dos scripts + hook de formatação pós-edição
+.claude/skills/              engine-financeira · dados-firestore · design-system-farol
+.claude/agents/              revisor-financeiro · dev-ui-farol
+.claude/commands/            /verificar · /rules · /paleta
+```
+
+O bloco `nextjs-agent-rules` no fim do `AGENTS.md` é escrito pelo `next dev` e se
+regenera sozinho — o conteúdo acima dele é preservado. `.claude/settings.local.json`
+é pessoal e fica no `.gitignore`.
+
 ## Segurança
 
 - **Nunca** use o prefixo `NEXT_PUBLIC_` em algo que seja segredo. O Next inlina o valor no bundle de qualquer arquivo que referencie a variável, e uma chave de service account publicada assim está comprometida de forma permanente — inclusive em todo build já publicado.

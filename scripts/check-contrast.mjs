@@ -4,7 +4,7 @@
  * Existe porque contraste NÃO se avalia no olho: âmbar sobre branco parece
  * legível e reprova em 1.9:1. Rodar isto é parte de mexer na paleta.
  *
- * Uso: pnpm contrast
+ * Uso: pnpm palette
  */
 
 const srgb = (channel) => {

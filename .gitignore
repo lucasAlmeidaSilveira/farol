@@ -48,3 +48,8 @@ firestore-debug.log
 firebase-debug.log
 ui-debug.log
 .firebase/
+
+# claude code
+# O .claude/ é versionado de propósito: instruções, skills e agentes valem para
+# quem clonar. Só os overrides pessoais de permissão ficam de fora.
+.claude/settings.local.json

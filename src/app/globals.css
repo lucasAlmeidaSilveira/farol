@@ -19,7 +19,7 @@
   - NEUTROS QUENTES, com um traço de verde, em vez de cinza puro. Planilha é
     fria, e frieza é exatamente o que afasta esse público.
 
-  Todos os pares abaixo foram CALCULADOS, não estimados: rode `pnpm contrast`
+  Todos os pares abaixo foram CALCULADOS, não estimados: rode `pnpm palette`
   antes de mexer em qualquer valor. Âmbar sobre branco parece legível ao olho e
   reprova em 1.9:1 — é por isso que o script existe.
 */
