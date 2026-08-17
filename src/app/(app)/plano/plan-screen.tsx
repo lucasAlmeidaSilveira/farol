@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { MoneyValue } from '@/components/money/money-value'
 import { AddExpenseSheet } from '@/components/plan/add-expense-sheet'
 import { AddIncomeSheet } from '@/components/plan/add-income-sheet'
 import { EditAmountSheet } from '@/components/plan/edit-amount-sheet'
+import { RemoveDialog } from '@/components/plan/remove-dialog'
 import { usePlanSections } from '@/components/plan/use-plan-sections'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import {
@@ -25,10 +25,10 @@ import {
   type CommitmentId,
   expectedRuleOf,
   type IncomeSource,
+  type IncomeSourceId,
 } from '@/domain/types'
 import type { CommitmentLine } from '@/engine'
 import {
-  type EditScope,
   useAddFixedBill,
   useAddIncomeSource,
   useEditFixedBill,
@@ -51,6 +51,11 @@ import { formatPeriod, spokenBRL } from '@/lib/format'
  * Ela ensina o modelo mental do app — o compromisso proporcional é descontado
  * antes de qualquer gasto, e é por isso que a folga é menor do que o salário.
  */
+/** O que está esperando confirmação de remoção. */
+type Removal =
+  | { kind: 'commitment'; id: CommitmentId; name: string }
+  | { kind: 'income'; id: IncomeSourceId; name: string; isOnly: boolean }
+
 export function PlanScreen() {
   const [period] = useState(() =>
     calendarPeriodOf(todayIn('America/Sao_Paulo')),
@@ -73,6 +78,7 @@ export function PlanScreen() {
     formulário: quem tocou "Adicionar parcelamento" já respondeu a pergunta.
   */
   const [adding, setAdding] = useState<'bill' | 'installment' | null>(null)
+  const [removing, setRemoving] = useState<Removal | null>(null)
   const [addingIncome, setAddingIncome] = useState(false)
   const { open: openSections, change: setOpenSections } = usePlanSections()
 
@@ -196,15 +202,12 @@ export function PlanScreen() {
                     onRemove={
                       source
                         ? () =>
-                            void confirmRemoveIncome(
-                              line.name,
-                              summary.income.lines.length <= 1,
-                              (scope) =>
-                                removeIncome.mutateAsync({
-                                  sourceId: source.id,
-                                  scope,
-                                }),
-                            )
+                            setRemoving({
+                              kind: 'income',
+                              id: source.id,
+                              name: line.name,
+                              isOnly: summary.income.lines.length <= 1,
+                            })
                         : undefined
                     }
                   />
@@ -231,15 +234,11 @@ export function PlanScreen() {
                     amountCents={line.consideredCents}
                     tone="covenant"
                     onRemove={() =>
-                      void confirmRemove(
-                        line.commitmentId,
-                        line.name,
-                        (scope) =>
-                          removeCommitment.mutateAsync({
-                            commitmentId: line.commitmentId,
-                            scope,
-                          }),
-                      )
+                      setRemoving({
+                        kind: 'commitment',
+                        id: line.commitmentId,
+                        name: line.name,
+                      })
                     }
                   />
                 ))}
@@ -263,15 +262,11 @@ export function PlanScreen() {
                     amountCents={line.consideredCents}
                     onEdit={() => setEditingBill(line)}
                     onRemove={() =>
-                      void confirmRemove(
-                        line.commitmentId,
-                        line.name,
-                        (scope) =>
-                          removeCommitment.mutateAsync({
-                            commitmentId: line.commitmentId,
-                            scope,
-                          }),
-                      )
+                      setRemoving({
+                        kind: 'commitment',
+                        id: line.commitmentId,
+                        name: line.name,
+                      })
                     }
                   />
                 ))
@@ -315,12 +310,11 @@ export function PlanScreen() {
                   amountCents={line.consideredCents}
                   onEdit={() => setEditingBill(line)}
                   onRemove={() =>
-                    void confirmRemove(line.commitmentId, line.name, (scope) =>
-                      removeCommitment.mutateAsync({
-                        commitmentId: line.commitmentId,
-                        scope,
-                      }),
-                    )
+                    setRemoving({
+                      kind: 'commitment',
+                      id: line.commitmentId,
+                      name: line.name,
+                    })
                   }
                 />
               ))}
@@ -347,6 +341,30 @@ export function PlanScreen() {
         onOpenChange={setAddingIncome}
         saving={addIncome.isPending}
         onAdd={(income) => void addIncome.mutateAsync(income)}
+      />
+
+      <RemoveDialog
+        name={removing?.name ?? null}
+        foreverBlockedBy={
+          removing?.kind === 'income' && removing.isOnly
+            ? 'É a sua única renda: sem nenhuma, o app volta a pedir o plano do zero. Cadastre outra antes de remover de vez.'
+            : undefined
+        }
+        onOpenChange={(open) => !open && setRemoving(null)}
+        onConfirm={(scope) => {
+          if (!removing) return
+
+          if (removing.kind === 'commitment') {
+            void removeCommitment.mutateAsync({
+              commitmentId: removing.id,
+              scope,
+            })
+          } else {
+            void removeIncome.mutateAsync({ sourceId: removing.id, scope })
+          }
+
+          setRemoving(null)
+        }}
       />
 
       {adding ? (
@@ -410,72 +428,6 @@ export function PlanScreen() {
       ) : null}
     </>
   )
-}
-
-/**
- * Remoção com escopo, via toast em vez de AlertDialog.
- *
- * Confirmação prévia é atrito em toda ação; desfazer é gentileza só quando o
- * erro acontece. Aqui a pergunta é necessária porque as duas opções fazem
- * coisas diferentes com o histórico — mas ela vive num toast, não num modal
- * que bloqueia a tela.
- */
-function confirmRemove(
-  commitmentId: CommitmentId,
-  name: string,
-  remove: (scope: EditScope) => Promise<void>,
-) {
-  return new Promise<void>((resolve) => {
-    toast(`Remover ${name}?`, {
-      duration: 10_000,
-      action: {
-        label: 'Só neste mês',
-        onClick: () => void remove('thisMonth').then(resolve),
-      },
-      cancel: {
-        label: 'De vez',
-        onClick: () => void remove('fromNowOn').then(resolve),
-      },
-      description: '"De vez" também remove dos meses anteriores.',
-    })
-  })
-}
-
-/**
- * Remover uma fonte de renda — com o mesmo escopo da remoção de compromisso.
- *
- * "Só neste mês" desliga por override e o histórico fica intacto; "de vez"
- * apaga o documento, e por isso a ressalva aparece antes, não depois.
- *
- * A ÚLTIMA renda não pode ser removida de vez. Não é capricho: `needsOnboarding`
- * é derivado de `sources.length === 0`, então zerar as fontes faz o app achar
- * que o plano nunca foi montado — a navegação some e o onboarding volta a ser
- * oferecido, por cima de compromissos que continuam existindo. Enquanto essa
- * inferência não virar um marcador no `Space`, o caminho fica fechado.
- */
-function confirmRemoveIncome(
-  name: string,
-  isOnly: boolean,
-  remove: (scope: EditScope) => Promise<void>,
-) {
-  return new Promise<void>((resolve) => {
-    toast(`Remover ${name}?`, {
-      duration: 10_000,
-      action: {
-        label: 'Só neste mês',
-        onClick: () => void remove('thisMonth').then(resolve),
-      },
-      cancel: isOnly
-        ? undefined
-        : {
-            label: 'De vez',
-            onClick: () => void remove('fromNowOn').then(resolve),
-          },
-      description: isOnly
-        ? 'É a sua única renda: sem nenhuma, o app volta a pedir o plano do zero. Cadastre outra antes de remover de vez.'
-        : '"De vez" também remove dos meses anteriores.',
-    })
-  })
 }
 
 /**
@@ -621,7 +573,8 @@ function Row({
     muito maior do que o ícone que ele substitui.
 
     Não virou menu "⋮" de propósito: com duas ações só, e remover já protegido
-    pelo toast de confirmação, o menu cobraria um clique sem comprar segurança.
+    pelo diálogo de confirmação, o menu cobraria um clique sem comprar
+    segurança.
   */
   const content = (
     <>
