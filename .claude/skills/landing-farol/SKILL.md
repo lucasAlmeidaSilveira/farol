@@ -102,20 +102,24 @@ decisão e a página deixa de ter resposta óbvia.
 
 A divisão é fixa, e sair dela é o jeito mais fácil de deixar a página pesada:
 
-| O quê                                        | Onde                            | Por quê                                                                                                      |
-| -------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Laço infinito — feixe, halo, varredura       | `@utility` no `globals.css`     | roda para sempre; em JS disputaria quadro com a rolagem                                                      |
-| Entrada, direção, mola, progresso de rolagem | `components/landing/motion.tsx` | depende de onde a pessoa está; em CSS dependeria de `animation-timeline`, que ainda não existe em toda parte |
+| O quê                                       | Onde                                          | Por quê                                                            |
+| ------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| Laço infinito — feixe, halo, varredura      | `@utility` no `globals.css`                   | roda para sempre; em JS disputaria quadro com a rolagem            |
+| Entrada e cascata                           | `components/motion/` — as MESMAS peças do app | uma régua só para o produto inteiro                                |
+| Progresso de rolagem e linha que se desenha | `components/landing/motion.tsx`               | só existem aqui: o app não tem página longa nem explica a si mesmo |
 
-Use `<Reveal>` para tudo que entra. **Acima da dobra, passe `onMount`**: o que
-está visível no primeiro quadro não pode depender de `IntersectionObserver`.
+Use `<Reveal>` para tudo que entra, sempre com `variant="reveal"` — a régua
+longa (650ms, com desfoque que abre), reservada às vitrines. **Acima da dobra,
+passe `onMount`**: o que está visível no primeiro quadro não pode depender de
+`IntersectionObserver`.
 
 Três coisas que não se mexem sem substituir por equivalente:
 
 - **`LazyMotion` com `strict`.** Importar o `motion` completo reprova em
   desenvolvimento — é o que impede o bundle de crescer sozinho.
-- **`data-reveal` + o `<noscript>` do layout.** O Motion escreve `opacity: 0` já
-  no HTML do servidor; sem essa regra, JavaScript quebrado é landing em branco.
+- **`data-reveal` + o `<noscript>` do layout raiz.** O Motion escreve
+  `opacity: 0` já no HTML do servidor; sem essa regra, JavaScript quebrado é
+  landing em branco.
 - **`viewport={{ once: true }}`.** Reanimar a cada rolagem para cima enjoa e
   denuncia o truque.
 

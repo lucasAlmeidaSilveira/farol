@@ -3,6 +3,7 @@
 import { X } from 'lucide-react'
 
 import { FarolMark } from '@/components/brand/farol-mark'
+import { Reveal } from '@/components/motion/reveal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useInstallPrompt } from '@/hooks/use-install-prompt'
@@ -20,30 +21,35 @@ export function InstallCard() {
   if (!canInstall) return null
 
   return (
-    <Card className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <CardContent className="flex items-center gap-3">
-        <FarolMark size={28} />
+    /* O convite aparece de baixo, e não do nada: ele é o único elemento da tela
+       que surge por decisão do app, não da pessoa — sem movimento, lê como algo
+       que sempre esteve ali e passou despercebido. */
+    <Reveal onMount y={8}>
+      <Card>
+        <CardContent className="flex items-center gap-3">
+          <FarolMark size={28} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="font-medium">Farol na tela inicial</span>
-          <span className="text-muted-foreground text-sm text-balance">
-            Abre direto, sem navegador, e funciona sem internet.
-          </span>
-        </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="font-medium">Farol na tela inicial</span>
+            <span className="text-muted-foreground text-sm text-balance">
+              Abre direto, sem navegador, e funciona sem internet.
+            </span>
+          </div>
 
-        <Button size="sm" onClick={() => void install()}>
-          Instalar
-        </Button>
+          <Button size="sm" onClick={() => void install()}>
+            Instalar
+          </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={dismiss}
-          aria-label="Agora não"
-        >
-          <X aria-hidden className="size-4" />
-        </Button>
-      </CardContent>
-    </Card>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={dismiss}
+            aria-label="Agora não"
+          >
+            <X aria-hidden className="size-4" />
+          </Button>
+        </CardContent>
+      </Card>
+    </Reveal>
   )
 }

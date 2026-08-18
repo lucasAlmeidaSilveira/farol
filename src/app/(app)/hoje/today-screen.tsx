@@ -3,14 +3,12 @@
 import { useState } from 'react'
 
 import { BeaconCard } from '@/components/home/beacon-card'
-import {
-  beaconViewOf,
-  proportionalLineOf,
-} from '@/components/home/beacon-view'
+import { beaconViewOf, proportionalLineOf } from '@/components/home/beacon-view'
 import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { EmptyBeacon } from '@/components/home/empty-beacon'
 import { IncomeCard } from '@/components/home/income-card'
+import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { InstallCard } from '@/components/shell/install-card'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
@@ -87,7 +85,7 @@ function LoadingState() {
 
 function ErrorState({ message }: { message?: string }) {
   return (
-    <Card className="animate-rise items-center gap-4 py-12 text-center">
+    <Card className="items-center gap-4 py-12 text-center">
       <CardHeader className="w-full">
         <CardTitle className="text-lg">
           Não consegui carregar seu farol
@@ -137,8 +135,8 @@ function LoadedState({
     summary.totals.receivedIncomeCents === ZERO
 
   return (
-    <div className="stagger grid gap-6 lg:grid-cols-12">
-      <div className="flex flex-col gap-6 lg:col-span-7">
+    <Stagger className="grid gap-6 lg:grid-cols-12">
+      <StaggerItem className="flex flex-col gap-6 lg:col-span-7">
         {/* A tradução resumo -> props mora em `beaconViewOf` porque a landing
             mostra este mesmo card com um exemplo, e as duas não podem
             divergir. */}
@@ -150,9 +148,9 @@ function LoadedState({
             conta com suas contas fixas.
           </p>
         ) : null}
-      </div>
+      </StaggerItem>
 
-      <div className="flex flex-col gap-6 lg:col-span-5">
+      <StaggerItem className="flex flex-col gap-6 lg:col-span-5">
         <DuePanel
           items={summary.due}
           onSettle={settle}
@@ -179,7 +177,7 @@ function LoadedState({
 
         {/* Por último, e só para quem já voltou e já lançou algo. */}
         <InstallCard />
-      </div>
-    </div>
+      </StaggerItem>
+    </Stagger>
   )
 }

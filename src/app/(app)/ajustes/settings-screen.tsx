@@ -3,10 +3,8 @@
 import { useRouter } from 'next/navigation'
 
 import { FarolLockup } from '@/components/brand/farol-lockup'
-import {
-  CycleCard,
-  IncomePolicyCard,
-} from '@/components/settings/space-config'
+import { Stagger, StaggerItem } from '@/components/motion/reveal'
+import { CycleCard, IncomePolicyCard } from '@/components/settings/space-config'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { UserAvatar } from '@/components/shared/user-avatar'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
@@ -31,7 +29,7 @@ export function SettingsScreen() {
     <PageContainer>
       <PageHeader title="Ajustes" hint="Conta, espaço e aparência." />
 
-      <div className="stagger grid gap-8 md:grid-cols-2">
+      <Stagger className="grid gap-8 md:grid-cols-2">
         <Group title="Perfil">
           <Card>
             <CardContent className="flex items-center gap-3">
@@ -85,7 +83,7 @@ export function SettingsScreen() {
             Sair
           </Button>
         </Group>
-      </div>
+      </Stagger>
 
       <footer className="flex flex-col items-center gap-2 pt-4">
         <FarolLockup size={22} tone="theme" />
@@ -105,9 +103,9 @@ function Group({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex flex-col gap-3">
+    <StaggerItem as="section" className="flex flex-col gap-3">
       <h2 className="text-eyebrow text-muted-foreground uppercase">{title}</h2>
       {children}
-    </section>
+    </StaggerItem>
   )
 }

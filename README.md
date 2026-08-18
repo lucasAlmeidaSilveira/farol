@@ -34,17 +34,17 @@ O número principal se ajusta sozinho conforme a renda variável entra — inclu
 
 ## Stack
 
-| Camada          | Escolha                                                 |
-| --------------- | ------------------------------------------------------- |
-| Framework       | Next.js 16 (App Router, Turbopack) · React 19           |
-| Linguagem       | TypeScript strict + `noUncheckedIndexedAccess`          |
-| Estilo          | Tailwind CSS v4 · shadcn/ui sobre Radix                 |
-| Estado servidor | TanStack Query v5 ligado ao `onSnapshot` do Firestore   |
-| Backend         | Firebase Auth + Firestore (client-side puro)            |
-| Validação       | Zod v4                                                  |
-| Testes          | Vitest · fast-check · `@firebase/rules-unit-testing`    |
-| Movimento       | CSS no app · [Motion](https://motion.dev) só na landing |
-| PWA             | Serwist                                                 |
+| Camada          | Escolha                                                                            |
+| --------------- | ---------------------------------------------------------------------------------- |
+| Framework       | Next.js 16 (App Router, Turbopack) · React 19                                      |
+| Linguagem       | TypeScript strict + `noUncheckedIndexedAccess`                                     |
+| Estilo          | Tailwind CSS v4 · shadcn/ui sobre Radix                                            |
+| Estado servidor | TanStack Query v5 ligado ao `onSnapshot` do Firestore                              |
+| Backend         | Firebase Auth + Firestore (client-side puro)                                       |
+| Validação       | Zod v4                                                                             |
+| Testes          | Vitest · fast-check · `@firebase/rules-unit-testing`                               |
+| Movimento       | [Motion](https://motion.dev) (`m` + `domAnimation`) · CSS só nos laços de ambiente |
+| PWA             | Serwist                                                                            |
 
 ## Arquitetura
 

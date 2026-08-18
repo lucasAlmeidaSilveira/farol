@@ -1,12 +1,12 @@
 import { Check } from 'lucide-react'
 import Link from 'next/link'
 
+import { Reveal } from '@/components/motion/reveal'
 import { Button } from '@/components/ui/button'
 import { HERO } from '@/content/landing'
 
 import { BeaconPreview } from './beacon-preview'
 import { EnterCta } from './enter-cta'
-import { Reveal } from './motion'
 
 /**
  * A dobra. Ela tem um trabalho só: fazer a pessoa se reconhecer em uma frase.
@@ -41,25 +41,26 @@ export function HeroSection() {
           inteira vende: o que estava embaçado fica nítido.
         */}
         <div className="flex min-w-0 flex-col gap-6">
-          <Reveal delay={0} onMount>
+          <Reveal variant="reveal" delay={0} onMount>
             <p className="text-eyebrow text-muted-foreground uppercase">
               {HERO.eyebrow}
             </p>
           </Reveal>
 
-          <Reveal delay={0.09} onMount>
+          <Reveal variant="reveal" delay={0.09} onMount>
             <h1 className="text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
               {HERO.title}
             </h1>
           </Reveal>
 
-          <Reveal delay={0.18} onMount>
+          <Reveal variant="reveal" delay={0.18} onMount>
             <p className="text-muted-foreground max-w-lg text-lg leading-relaxed text-balance">
               {HERO.lead}
             </p>
           </Reveal>
 
           <Reveal
+            variant="reveal"
             delay={0.27}
             onMount
             className="flex flex-col gap-3 sm:flex-row sm:items-center"
@@ -76,7 +77,7 @@ export function HeroSection() {
             </Button>
           </Reveal>
 
-          <Reveal delay={0.36} onMount>
+          <Reveal variant="reveal" delay={0.36} onMount>
             <ul className="flex flex-wrap gap-x-5 gap-y-2">
               {HERO.reassurances.map((item) => (
                 <li
@@ -95,7 +96,13 @@ export function HeroSection() {
         </div>
 
         {/* A prova entra depois da promessa, e do lado dela. */}
-        <Reveal delay={0.22} x={20} onMount className="min-w-0 lg:pl-4">
+        <Reveal
+          variant="reveal"
+          delay={0.22}
+          x={20}
+          onMount
+          className="min-w-0 lg:pl-4"
+        >
           <BeaconPreview />
         </Reveal>
       </div>

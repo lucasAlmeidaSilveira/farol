@@ -50,10 +50,25 @@ export const viewport: Viewport = {
   ],
 }
 
+const NOSCRIPT_REVEAL = `[data-reveal]{opacity:1!important;filter:none!important;transform:none!important}`
+
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-dvh">
+        {/*
+          O seguro contra a tela em branco.
+
+          O Motion escreve o estado inicial da animação já no HTML do servidor —
+          `opacity: 0` incluso. Se o JavaScript não carregar, nada apareceria, e
+          uma tela vazia é pior do que uma tela sem animação nenhuma. Esta regra
+          devolve todo elemento animado ao estado final, e só é aplicada
+          exatamente no cenário em que ninguém mais pode fazer isso.
+        */}
+        <noscript>
+          <style>{NOSCRIPT_REVEAL}</style>
+        </noscript>
+
         <SerwistProvider swUrl="/serwist/sw.js">
           <Providers>
             {/* No topo de tudo, para valer em qualquer rota — inclusive

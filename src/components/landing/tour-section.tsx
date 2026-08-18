@@ -2,10 +2,10 @@
 
 import { Check } from 'lucide-react'
 
+import { Reveal } from '@/components/motion/reveal'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SECTIONS, TOUR } from '@/content/landing'
 
-import { Reveal } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -33,7 +33,7 @@ export function TourSection() {
       {/* A troca de aba já tem movimento próprio, no `globals.css`: sem ele, o
           conteúdo trocaria sem nenhum sinal de que o clique pegou. */}
 
-      <Reveal>
+      <Reveal variant="reveal">
         <Tabs defaultValue={first.href} className="mt-12 gap-8">
           <TabsList className="mx-auto">
             {TOUR.map((screen) => (

@@ -81,7 +81,7 @@ export function DuePanel({
   const overdue = items.filter((item) => item.status === 'overdue')
 
   return (
-    <Card className={cn('animate-rise', className)}>
+    <Card className={className}>
       <CardHeader>
         <CardTitle className="text-sm font-medium">A vencer</CardTitle>
         <CardDescription>

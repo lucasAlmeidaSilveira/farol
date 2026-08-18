@@ -1,8 +1,8 @@
 import { FarolMark } from '@/components/brand/farol-mark'
+import { Reveal } from '@/components/motion/reveal'
 import { CLOSING, HERO } from '@/content/landing'
 
 import { EnterCta } from './enter-cta'
-import { Reveal } from './motion'
 
 /**
  * A última chamada, na superfície da marca.
@@ -20,7 +20,10 @@ import { Reveal } from './motion'
 export function ClosingSection() {
   return (
     <section className="px-5 py-20 sm:px-6 sm:py-24 lg:px-10">
-      <Reveal className="bg-beacon relative mx-auto flex w-full max-w-4xl flex-col items-center gap-6 overflow-hidden rounded-2xl px-6 py-14 text-center shadow-lg sm:px-12">
+      <Reveal
+        variant="reveal"
+        className="bg-beacon relative mx-auto flex w-full max-w-4xl flex-col items-center gap-6 overflow-hidden rounded-2xl px-6 py-14 text-center shadow-lg sm:px-12"
+      >
         {/*
           A varredura do farol, a mesma da tela de entrada: um facho em
           gradiente cônico girando devagar, e um halo respirando por baixo para

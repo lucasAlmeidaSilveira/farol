@@ -1,8 +1,10 @@
 'use client'
 
+import { m } from 'motion/react'
 import { useState } from 'react'
 
 import { MoneyValue } from '@/components/money/money-value'
+import { Reveal, StaggerItem } from '@/components/motion/reveal'
 import { AddExpenseSheet } from '@/components/plan/add-expense-sheet'
 import { AddIncomeSheet } from '@/components/plan/add-income-sheet'
 import { EditAmountSheet } from '@/components/plan/edit-amount-sheet'
@@ -39,6 +41,10 @@ import {
 import { useIncomeSources } from '@/hooks/plan/use-plan'
 import { useMonthSummary } from '@/hooks/summary/use-month-summary'
 import { formatPeriod, spokenBRL } from '@/lib/format'
+
+/** O acordeão do plano com variantes do Motion. Fora do render de propósito:
+ *  criar o componente a cada renderização remontaria a árvore inteira. */
+const StaggerAccordion = m.create(Accordion)
 
 /**
  * A tela PLANO. É aqui que o produto vira um feedback loop.
@@ -163,11 +169,20 @@ export function PlanScreen() {
         />
 
         <div className="grid gap-8 lg:grid-cols-12">
-          <Accordion
+          {/*
+            O acordeão É o orquestrador da cascata: `m.create` transforma um
+            componente que aceita `ref` numa peça do Motion, e as variantes
+            descem dele para cada seção. A alternativa — calcular um atraso por
+            índice — obrigaria cada seção a saber a posição dela na lista.
+          */}
+          <StaggerAccordion
             type="multiple"
             value={openSections}
             onValueChange={setOpenSections}
-            className="stagger flex flex-col gap-2 lg:col-span-8"
+            className="flex flex-col gap-2 lg:col-span-8"
+            initial="hidden"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.04 } } }}
           >
             {/*
               Todas as seções carregam subtotal agora, e não só "Contas fixas":
@@ -319,7 +334,7 @@ export function PlanScreen() {
                 />
               ))}
             </Section>
-          </Accordion>
+          </StaggerAccordion>
 
           {/* No desktop o resumo vira um card que acompanha a rolagem, ao lado
               das seções. No celular ele volta a ser a barra fixa do rodapé —
@@ -511,39 +526,41 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <AccordionItem
-      value={id}
-      className="bg-card border-border rounded-lg border px-4"
-    >
-      {/* `hover:no-underline` porque o sublinhado padrão pegaria o subtotal
+    <StaggerItem>
+      <AccordionItem
+        value={id}
+        className="bg-card border-border rounded-lg border px-4"
+      >
+        {/* `hover:no-underline` porque o sublinhado padrão pegaria o subtotal
           junto, e número sublinhado parece link quebrado. */}
-      <AccordionTrigger className="py-3.5 hover:no-underline">
-        <div className="flex flex-1 items-baseline justify-between gap-3">
-          <span className="flex min-w-0 flex-col gap-0.5 text-left">
-            <span className="text-eyebrow text-muted-foreground uppercase">
-              {title}
-            </span>
-            {hint ? (
-              <span className="text-muted-foreground text-xs font-normal">
-                {hint}
+        <AccordionTrigger className="py-3.5 hover:no-underline">
+          <div className="flex flex-1 items-baseline justify-between gap-3">
+            <span className="flex min-w-0 flex-col gap-0.5 text-left">
+              <span className="text-eyebrow text-muted-foreground uppercase">
+                {title}
               </span>
+              {hint ? (
+                <span className="text-muted-foreground text-xs font-normal">
+                  {hint}
+                </span>
+              ) : null}
+            </span>
+
+            {total !== undefined ? (
+              <MoneyValue
+                cents={total}
+                size="sm"
+                srLabel={`Total de ${title}: ${spokenBRL(total)}`}
+              />
             ) : null}
-          </span>
+          </div>
+        </AccordionTrigger>
 
-          {total !== undefined ? (
-            <MoneyValue
-              cents={total}
-              size="sm"
-              srLabel={`Total de ${title}: ${spokenBRL(total)}`}
-            />
-          ) : null}
-        </div>
-      </AccordionTrigger>
-
-      <AccordionContent className="pt-1 pb-4">
-        <div className="flex flex-col gap-2">{children}</div>
-      </AccordionContent>
-    </AccordionItem>
+        <AccordionContent className="pt-1 pb-4">
+          <div className="flex flex-col gap-2">{children}</div>
+        </AccordionContent>
+      </AccordionItem>
+    </StaggerItem>
   )
 }
 
@@ -640,7 +657,10 @@ function SlackSummary({
   commitmentCents: Cents
 }) {
   return (
-    <div className="bg-card border-border animate-rise sticky top-9 flex flex-col gap-4 rounded-lg border p-5">
+    <Reveal
+      onMount
+      className="bg-card border-border sticky top-9 flex flex-col gap-4 rounded-lg border p-5"
+    >
       <h2 className="text-eyebrow text-muted-foreground uppercase">
         Sobra livre
       </h2>
@@ -670,7 +690,7 @@ function SlackSummary({
         Este número muda enquanto você edita, para você ver a consequência de
         cada ajuste na hora.
       </p>
-    </div>
+    </Reveal>
   )
 }
 

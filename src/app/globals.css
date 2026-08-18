@@ -272,75 +272,26 @@
 /*
   Movimento.
 
-  A régua aqui é uma só: a animação existe para EXPLICAR o que aconteceu, nunca
-  para enfeitar. Um card que sobe 8px ao aparecer diz "isto é novo"; um número
-  que corre de um valor a outro diz "isto mudou por causa do que você acabou de
-  fazer". Qualquer movimento que não responda a uma dessas duas perguntas é
-  ruído — e num app de dinheiro, ruído lê como instabilidade.
+  A régua é uma só: a animação existe para EXPLICAR o que aconteceu, nunca para
+  enfeitar. Um card que sobe ao aparecer diz "isto é novo"; um número que corre
+  de um valor a outro diz "isto mudou por causa do que você acabou de fazer".
+  Qualquer movimento que não responda a uma dessas duas perguntas é ruído — e
+  num app de dinheiro, ruído lê como instabilidade.
 
-  Durações curtas de propósito: 150ms para reação a toque, 250ms para entrada de
-  elemento, 600ms só para o contador do impacto de renda, que é o único momento
-  em que a animação É a informação.
+  ONDE ESTÁ O QUÊ, desde a entrada do Motion no projeto:
+
+  - **Entrada, cascata, camadas e saída** vivem em `components/motion/` e são
+    animadas em JavaScript. Precisam saber quando um elemento monta, desmonta ou
+    chega à tela — coisas que o CSS não observa sozinho. É lá que ficam as
+    durações da casa (`transitions.ts`).
+  - **Laços infinitos de ambiente** ficam AQUI: o feixe do farol, o halo que
+    respira, a varredura de luz. Rodam para sempre e são puramente decorativos;
+    em JavaScript disputariam quadro com a rolagem sem entregar nada em troca.
+  - **O acordeão** também fica aqui, por um motivo técnico explicado adiante.
+
+  Quem pediu menos movimento recebe tudo instantâneo, dos dois lados: por este
+  arquivo, no corte global do fim, e pelo `reducedMotion="user"` do Motion.
 */
-
-@keyframes farol-fade-in {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes farol-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes farol-slide-up {
-  from {
-    transform: translateY(100%);
-  }
-}
-
-@keyframes farol-pulse-soft {
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@utility animate-rise {
-  animation: farol-rise 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@utility animate-fade {
-  animation: farol-fade-in 200ms ease-out both;
-}
-
-/* Entrada em cascata: cada filho entra 40ms depois do anterior, no máximo 6.
-   Acima disso a espera passa a ser percebida como lentidão. */
-@utility stagger {
-  & > * {
-    animation: farol-rise 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  & > *:nth-child(1) {
-    animation-delay: 0ms;
-  }
-  & > *:nth-child(2) {
-    animation-delay: 40ms;
-  }
-  & > *:nth-child(3) {
-    animation-delay: 80ms;
-  }
-  & > *:nth-child(4) {
-    animation-delay: 120ms;
-  }
-  & > *:nth-child(5) {
-    animation-delay: 160ms;
-  }
-  & > *:nth-child(n + 6) {
-    animation-delay: 200ms;
-  }
-}
 
 /*
   AS VITRINES — a landing e a tela de entrada — são as únicas superfícies com
@@ -371,13 +322,6 @@
   }
 }
 
-@keyframes farol-hero-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-}
-
 @utility animate-beam {
   animation: farol-beam-sweep 20s linear infinite;
   will-change: transform;
@@ -391,26 +335,6 @@
 /* Cascata do painel de marca: passos de 110ms, bem maiores que os 40ms de
    dentro do app. Numa lista, 110ms leria como lentidão; numa apresentação, é
    o que dá tempo de a frase anterior ser lida antes da próxima entrar. */
-@utility stagger-hero {
-  & > * {
-    animation: farol-hero-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  & > *:nth-child(1) {
-    animation-delay: 80ms;
-  }
-  & > *:nth-child(2) {
-    animation-delay: 190ms;
-  }
-  & > *:nth-child(3) {
-    animation-delay: 300ms;
-  }
-  & > *:nth-child(4) {
-    animation-delay: 410ms;
-  }
-  & > *:nth-child(n + 5) {
-    animation-delay: 520ms;
-  }
-}
 
 /* --------------------------------------------------------------------------
    OS LAÇOS DE AMBIENTE DA LANDING.
@@ -473,22 +397,50 @@
   will-change: transform;
 }
 
+/*
+  O ACORDEÃO é a única superfície do app que continua animada por CSS, e o
+  motivo é técnico: a altura de "aberto" só existe depois que o Radix mede o
+  conteúdo, e ele entrega essa medida numa variável de CSS. Em JavaScript, a
+  mesma animação exigiria manter o conteúdo montado enquanto fecha — e conteúdo
+  colapsado que continua na árvore de acessibilidade é lido por leitor de tela
+  como se estivesse aberto.
+
+  Estas duas utilities existiam no `accordion.tsx` desde sempre, mas o plugin
+  que as geraria (`tw-animate-css`) nunca foi instalado: as classes não
+  produziam CSS nenhum, e nenhum acordeão do app animava. Aqui elas passam a
+  existir de verdade.
+*/
+@keyframes farol-accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes farol-accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@utility animate-accordion-down {
+  animation: farol-accordion-down 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-accordion-up {
+  animation: farol-accordion-up 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @layer base {
-  /* Sheets do Radix. */
-  [data-state='open'][data-slot='sheet-overlay'] {
-    animation: farol-fade-in 200ms ease-out;
-  }
-  [data-state='open'][data-slot='sheet-content'] {
-    animation: farol-slide-up 280ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  /* Abas do Radix. Sem isto, trocar de aba troca o conteúdo sem nenhum sinal de
-     que algo aconteceu — e num painel com quatro abas parecidas, a pessoa fica
-     sem saber se o clique pegou. */
-  [data-slot='tabs-content'][data-state='active'] {
-    animation: farol-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
   /*
     O corte total para quem pediu menos movimento.
 

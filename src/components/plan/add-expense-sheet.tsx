@@ -1,10 +1,12 @@
 'use client'
 
+import { m } from 'motion/react'
 import { useMemo, useState } from 'react'
 
 import { AmountKeypad } from '@/components/entries/amount-keypad'
 import { MoneyInput } from '@/components/money/money-input'
 import { MoneyValue } from '@/components/money/money-value'
+import { DURATION } from '@/components/motion/transitions'
 import {
   Accordion,
   AccordionContent,
@@ -427,7 +429,7 @@ export function AddExpenseSheet({
           />
 
           {groups.length === 0 && trimmed !== '' ? (
-            <button
+            <m.button
               type="button"
               onClick={() =>
                 setDraft({
@@ -437,7 +439,10 @@ export function AddExpenseSheet({
                   installments: '',
                 })
               }
-              className="border-input hover:bg-muted animate-fade flex min-h-14 items-center gap-3 rounded-lg border border-dashed px-4 text-left transition-colors"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: DURATION.reaction }}
+              className="border-input hover:bg-muted flex min-h-14 items-center gap-3 rounded-lg border border-dashed px-4 text-left transition-colors"
             >
               <span aria-hidden="true">＋</span>
               <span className="flex flex-col">
@@ -446,7 +451,7 @@ export function AddExpenseSheet({
                   Não está na lista? Adicione do seu jeito.
                 </span>
               </span>
-            </button>
+            </m.button>
           ) : null}
 
           {/* Agrupado e recolhível: "tenho gastos com streaming" vem antes de

@@ -1,9 +1,11 @@
 'use client'
 
+import { m } from 'motion/react'
 import { useMemo, useState } from 'react'
 
 import { MoneyInput } from '@/components/money/money-input'
 import { MoneyValue } from '@/components/money/money-value'
+import { DURATION } from '@/components/motion/transitions'
 import {
   Accordion,
   AccordionContent,
@@ -92,14 +94,19 @@ export function ExpensePicker({
         className="h-12 text-base"
       />
 
+      {/* Aparece só quando a busca não acha nada: a entrada suave evita que o
+          botão pisque na tela a cada tecla digitada. */}
       {searching && !exactMatch ? (
-        <button
+        <m.button
           type="button"
           onClick={() => {
             onAddCustom(trimmed)
             setQuery('')
           }}
-          className="border-input hover:bg-muted animate-fade flex min-h-14 items-center gap-3 rounded-lg border border-dashed px-4 text-left transition-colors duration-150"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: DURATION.reaction }}
+          className="border-input hover:bg-muted flex min-h-14 items-center gap-3 rounded-lg border border-dashed px-4 text-left transition-colors duration-150"
         >
           <span aria-hidden="true">＋</span>
           <span className="flex flex-col">
@@ -108,7 +115,7 @@ export function ExpensePicker({
               Não está na lista? Adicione com o seu nome.
             </span>
           </span>
-        </button>
+        </m.button>
       ) : null}
 
       {customBills.length > 0 ? (
@@ -314,7 +321,12 @@ function AmountRow({
     onSet(Math.max(0, amountCents + delta) as Cents)
 
   return (
-    <div className="animate-fade flex items-center gap-2 pl-4">
+    <m.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: DURATION.reaction }}
+      className="flex items-center gap-2 pl-4"
+    >
       <Button
         variant="outline"
         size="icon"
@@ -339,6 +351,6 @@ function AmountRow({
       >
         <span aria-hidden="true">+</span>
       </Button>
-    </div>
+    </m.div>
   )
 }

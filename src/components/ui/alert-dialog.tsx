@@ -1,8 +1,11 @@
 'use client'
 
+import { AnimatePresence, m } from 'motion/react'
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 import * as React from 'react'
 
+import { LAYER, LAYER_EXIT } from '@/components/motion/transitions'
+import { usePresenceOpen } from '@/components/motion/use-presence-open'
 import { cn } from '@/lib/utils'
 
 /**
@@ -14,12 +17,32 @@ import { cn } from '@/lib/utils'
  * a pessoa precisa escolher. É o que se quer quando a saída apaga dado.
  *
  * Escrito à mão, na forma do shadcn, como o resto de `ui/`.
+ *
+ * A animação é do Motion: o diálogo cresce de 96% ao abrir e encolhe ao fechar.
+ * O `forceMount` existe para a saída — sem ele o Radix desmonta na hora, e uma
+ * confirmação que some sem transição deixa dúvida sobre o que foi clicado.
  */
 
+const AlertDialogOpenContext = React.createContext(false)
+
 function AlertDialog({
+  open,
+  defaultOpen,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+  const presence = usePresenceOpen({ open, defaultOpen, onOpenChange })
+
+  return (
+    <AlertDialogOpenContext value={presence.isOpen}>
+      <AlertDialogPrimitive.Root
+        data-slot="alert-dialog"
+        open={presence.isOpen}
+        onOpenChange={presence.onOpenChange}
+        {...props}
+      />
+    </AlertDialogOpenContext>
+  )
 }
 
 function AlertDialogTrigger({
@@ -30,38 +53,46 @@ function AlertDialogTrigger({
   )
 }
 
-function AlertDialogOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
-  return (
-    <AlertDialogPrimitive.Overlay
-      data-slot="alert-dialog-overlay"
-      className={cn(
-        'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50',
-        className,
-      )}
-      {...props}
-    />
-  )
-}
-
 function AlertDialogContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
+  const open = React.use(AlertDialogOpenContext)
+
   return (
-    <AlertDialogPrimitive.Portal>
-      <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
-        data-slot="alert-dialog-content"
-        className={cn(
-          'bg-card data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 rounded-xl border p-6 shadow-lg duration-200 outline-none sm:max-w-md',
-          className,
-        )}
-        {...props}
-      />
-    </AlertDialogPrimitive.Portal>
+    <AnimatePresence>
+      {open ? (
+        <AlertDialogPrimitive.Portal forceMount>
+          <AlertDialogPrimitive.Overlay forceMount asChild>
+            <m.div
+              data-slot="alert-dialog-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={LAYER_EXIT}
+              className="fixed inset-0 z-50 bg-black/50"
+            />
+          </AlertDialogPrimitive.Overlay>
+
+          <AlertDialogPrimitive.Content forceMount asChild {...props}>
+            <m.div
+              data-slot="alert-dialog-content"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={LAYER}
+              className={cn(
+                'bg-card fixed top-[50%] left-[50%] z-50 flex w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 rounded-xl border p-6 shadow-lg outline-none sm:max-w-md',
+                className,
+              )}
+            >
+              {children}
+            </m.div>
+          </AlertDialogPrimitive.Content>
+        </AlertDialogPrimitive.Portal>
+      ) : null}
+    </AnimatePresence>
   )
 }
 
@@ -141,7 +172,6 @@ export {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogOverlay,
   AlertDialogTitle,
   AlertDialogTrigger,
 }

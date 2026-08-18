@@ -48,15 +48,19 @@ Cada item já custou tempo uma vez.
 - **Não use `NEXT_PUBLIC_` em nada que seja segredo.** O Next inlina o valor no
   bundle de qualquer arquivo que referencie a variável. O MVP não tem segredo de
   servidor: a autorização inteira vive nas Security Rules.
-- **Não use o Motion dentro do app.** Ele entrou como dependência da **landing**
-  (`src/components/landing/motion.tsx`), onde o movimento precisa saber onde a
-  pessoa está na rolagem. Dentro do app o movimento é curto e reativo — 150ms de
-  resposta, 250ms de entrada — e CSS resolve sem custo. Importar `motion` numa
-  tela do produto cobra bundle de quem só quer ver um número.
+- **Não importe `motion` direto — use `m`.** O `LazyMotion` roda em modo
+  `strict`, então o pacote completo reprova em desenvolvimento. É o que segura
+  o bundle: `m` + `domAnimation` custa ~17kb; o `motion` inteiro custa o dobro.
 - **Não anime laço infinito com JavaScript.** Feixe, halo e varredura vivem em
   `@utility` no `globals.css` de propósito: laço infinito em JS disputa quadro
-  com a rolagem. A regra é simples — o que roda para sempre é CSS, o que reage à
-  pessoa é Motion.
+  com a rolagem sem entregar nada. A regra é curta — o que roda para sempre é
+  CSS, o que reage à pessoa é Motion.
+- **Não remova o `<noscript>` do layout raiz.** O Motion escreve `opacity: 0` no
+  HTML do servidor; sem aquela regra, JavaScript quebrado é tela em branco.
+- **Não anime o acordeão com o Motion.** A altura de "aberto" só existe depois
+  que o Radix mede o conteúdo, e ele entrega isso numa variável de CSS. Em JS,
+  a mesma animação exigiria manter o conteúdo montado enquanto fecha — e
+  colapsado na árvore de acessibilidade é lido como se estivesse aberto.
 - **Não dê `git push`.** Commit quando pedido; push é decisão do usuário.
 - **Não faça deploy de rules junto com o merge.** `pnpm rules:deploy:prod` é
   manual e separado, de propósito, e exige `pnpm test:rules` verde antes.
@@ -116,6 +120,11 @@ Detalhes em `.claude/skills/engine-financeira/SKILL.md`.
   Importar Firebase, React ou Next dentro de `domain/`/`engine/` falha o lint com
   a mensagem explicando o porquê. Se a regra te bloqueou, a resposta é inverter a
   dependência, não desligar a regra.
+- **Movimento tem dono e régua.** As durações da casa vivem em
+  `src/components/motion/transitions.ts` — 150ms reação, 250ms entrada, 300ms
+  camada, 650ms só nas vitrines. Entrada, cascata e camadas usam `Reveal`,
+  `Stagger` e `AnimatePresence`; a animação existe para EXPLICAR o que
+  aconteceu, nunca para enfeitar.
 - **Comentário explica _por quê_, nunca _o quê_.** O código do projeto segue isso
   à risca; siga também, e no mesmo tom — direto, sem adjetivo de marketing.
 - **Commit no imperativo, explicando por quê.** O _o quê_ já está no diff.
@@ -128,7 +137,7 @@ src/domain/     Cents, BasisPoints, Period, LocalDate, schemas Zod. Só depende 
 src/engine/     computeMonth e amigos. Função pura estado → MonthSummary.
 src/data/       ÚNICA camada que conhece Firebase. paths.ts tem todos os caminhos.
 src/hooks/      Subscriptions (useFirestoreQuery) e mutations, por domínio.
-src/components/ ui/ (primitivos) + por feature.
+src/components/ ui/ (primitivos) + motion/ (movimento) + por feature.
 src/content/    Texto da landing. O que o Farol promete em público.
 src/app/        Rotas do App Router. `/` é a landing; o app começa em `/hoje`.
 scripts/        Paleta e ícones. palette-source.mjs é a fonte das cores.

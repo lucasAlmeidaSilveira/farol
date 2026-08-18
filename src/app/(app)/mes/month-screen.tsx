@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { MoneyValue } from '@/components/money/money-value'
+import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -90,9 +91,9 @@ export function MonthScreen() {
             </p>
           ) : null}
 
-          <ol className="stagger flex flex-col gap-6">
+          <Stagger as="ol" className="flex flex-col gap-6">
             {days.map(([date, entries]) => (
-              <li key={date} className="flex flex-col gap-2">
+              <StaggerItem as="li" key={date} className="flex flex-col gap-2">
                 <h2 className="text-eyebrow text-muted-foreground uppercase">
                   {date === today ? 'Hoje' : formatDate(date)}
                 </h2>
@@ -107,9 +108,9 @@ export function MonthScreen() {
                     />
                   ))}
                 </ul>
-              </li>
+              </StaggerItem>
             ))}
-          </ol>
+          </Stagger>
         </div>
 
         {upcoming.length > 0 ? (

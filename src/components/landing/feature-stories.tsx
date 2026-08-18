@@ -2,6 +2,7 @@ import { proportionalLineOf } from '@/components/home/beacon-view'
 import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { IncomeCard } from '@/components/home/income-card'
+import { Reveal } from '@/components/motion/reveal'
 import { demoSources, demoSummary } from '@/content/demo-month'
 import {
   type Feature,
@@ -14,7 +15,6 @@ import type { IncomeSource } from '@/domain/types'
 import type { MonthSummary } from '@/engine'
 import { cn } from '@/lib/utils'
 
-import { Reveal } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -62,6 +62,7 @@ export function FeatureStories() {
               não há lado: `x` vira 0 e sobra a subida.
             */}
             <Reveal
+              variant="reveal"
               x={index % 2 === 1 ? 24 : -24}
               className={cn(
                 'flex min-w-0 flex-col gap-3',
@@ -79,6 +80,7 @@ export function FeatureStories() {
             </Reveal>
 
             <Reveal
+              variant="reveal"
               x={index % 2 === 1 ? -24 : 24}
               delay={0.12}
               className="min-w-0"

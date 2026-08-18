@@ -1,5 +1,6 @@
 'use client'
 
+import { Reveal } from '@/components/motion/reveal'
 import {
   Accordion,
   AccordionContent,
@@ -8,7 +9,6 @@ import {
 } from '@/components/ui/accordion'
 import { FAQ, SECTIONS } from '@/content/landing'
 
-import { Reveal } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -27,7 +27,7 @@ export function FaqSection() {
     <Section id="duvidas">
       <SectionHeading {...SECTIONS.faq} />
 
-      <Reveal className="mx-auto mt-12 w-full max-w-2xl">
+      <Reveal variant="reveal" className="mx-auto mt-12 w-full max-w-2xl">
         <Accordion type="single" collapsible className="w-full">
           {FAQ.map((item) => (
             <AccordionItem key={item.question} value={item.question}>

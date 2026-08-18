@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
 
+import { MotionProvider } from '@/components/motion/provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { AuthProvider } from './auth-provider'
@@ -44,7 +45,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryProvider>
         <AuthProvider>
-          <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+          {/* O Motion embrulha o app inteiro: as camadas (sheet, diálogo,
+              popover) precisam do `AnimatePresence` para animar a SAÍDA, e ele
+              só funciona abaixo de um provider único. */}
+          <MotionProvider>
+            <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+          </MotionProvider>
           <Toaster
             position="top-center"
             richColors

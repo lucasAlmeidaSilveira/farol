@@ -70,7 +70,7 @@ function ImpactChip({ today }: { today: ReturnType<typeof todayIn> }) {
   const impact = demoIncomeImpact(today)
 
   return (
-    <div className="bg-card animate-rise flex flex-col gap-2 rounded-lg border px-4 py-3 shadow-sm">
+    <div className="bg-card flex flex-col gap-2 rounded-lg border px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <span className="text-eyebrow text-muted-foreground uppercase">
           {PREVIEW.impactLabel}

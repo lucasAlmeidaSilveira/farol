@@ -1,6 +1,5 @@
+import { Reveal } from '@/components/motion/reveal'
 import { cn } from '@/lib/utils'
-
-import { Reveal } from './motion'
 
 /**
  * O ritmo da página pública.
@@ -58,6 +57,7 @@ export function SectionHeading({
 }) {
   return (
     <Reveal
+      variant="reveal"
       className={cn(
         // Cada cabeçalho entra ao chegar na tela: é ele que marca a troca de
         // assunto, então o movimento acontece exatamente onde a leitura vira

@@ -1,6 +1,7 @@
+import { Reveal } from '@/components/motion/reveal'
 import { SECTIONS, STEPS } from '@/content/landing'
 
-import { DrawLine, Reveal } from './motion'
+import { DrawLine } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -22,7 +23,11 @@ export function StepsSection() {
       <ol className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
         {STEPS.map((step, index) => (
           <li key={step.title} className="flex">
-            <Reveal delay={index * 0.1} className="flex flex-col gap-3">
+            <Reveal
+              variant="reveal"
+              delay={index * 0.1}
+              className="flex flex-col gap-3"
+            >
               <div className="flex items-center gap-3">
                 <span
                   aria-hidden="true"

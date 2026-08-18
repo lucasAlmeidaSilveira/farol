@@ -1,9 +1,11 @@
 'use client'
 
 import { cva, type VariantProps } from 'class-variance-authority'
+import { m } from 'motion/react'
 import { Tabs as TabsPrimitive } from 'radix-ui'
 import * as React from 'react'
 
+import { ENTER } from '@/components/motion/transitions'
 import { cn } from '@/lib/utils'
 
 function Tabs({
@@ -75,16 +77,31 @@ function TabsTrigger({
   )
 }
 
+/**
+ * O conteúdo da aba, entrando a cada troca.
+ *
+ * Sem movimento nenhum, trocar de aba troca o conteúdo sem sinal de que o
+ * clique pegou — e entre abas parecidas ("Gasto" e "Renda", por exemplo) a
+ * pessoa fica sem saber se acertou o alvo. Só entrada: o Radix desmonta a aba
+ * anterior na hora, e animar a saída de algo que já foi substituído atrasaria
+ * a leitura do que importa.
+ */
 function TabsContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
   return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn('flex-1 outline-none', className)}
-      {...props}
-    />
+    <TabsPrimitive.Content data-slot="tabs-content" asChild {...props}>
+      <m.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={ENTER}
+        className={cn('flex-1 outline-none', className)}
+      >
+        {children}
+      </m.div>
+    </TabsPrimitive.Content>
   )
 }
 

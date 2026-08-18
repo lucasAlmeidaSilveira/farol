@@ -1,6 +1,6 @@
+import { Reveal } from '@/components/motion/reveal'
 import { PAIN } from '@/content/landing'
 
-import { Reveal } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -25,6 +25,7 @@ export function PainSection() {
             {/* Escalonamento curto: os três cartões são três cenas da mesma
                 ideia, e uma cascata longa viraria espera. */}
             <Reveal
+              variant="reveal"
               delay={index * 0.08}
               className="bg-card hover:border-accent-border/60 flex flex-col gap-2 rounded-lg border p-6 shadow-xs transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:shadow-md"
             >
@@ -37,7 +38,10 @@ export function PainSection() {
         ))}
       </ul>
 
-      <Reveal className="mx-auto mt-10 max-w-2xl text-center text-lg font-medium text-balance">
+      <Reveal
+        variant="reveal"
+        className="mx-auto mt-10 max-w-2xl text-center text-lg font-medium text-balance"
+      >
         {PAIN.close}
       </Reveal>
     </Section>

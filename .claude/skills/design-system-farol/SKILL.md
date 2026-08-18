@@ -43,12 +43,12 @@ depois sem conflito.
 
 Não escolha token por aparência; escolha por significado.
 
-| Cor | Significa | Onde |
-| --- | --- | --- |
-| **Verde** | "estar no verde" — o gatilho central | O número principal, `positive`, `primary` |
-| **Ouro** | a luz do farol | `accent`, `covenant`, ação primária. **Escasso de propósito**: ouro em tudo deixa de significar algo |
-| **Terracota** | atenção, nunca punição | `negative`, `destructive`. Vermelho puro é punição para quem já se sente mal com dinheiro |
-| **Neutros quentes** | com traço de verde, nunca cinza puro | fundo, `muted`. Planilha é fria, e frieza afasta esse público |
+| Cor                 | Significa                            | Onde                                                                                                 |
+| ------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| **Verde**           | "estar no verde" — o gatilho central | O número principal, `positive`, `primary`                                                            |
+| **Ouro**            | a luz do farol                       | `accent`, `covenant`, ação primária. **Escasso de propósito**: ouro em tudo deixa de significar algo |
+| **Terracota**       | atenção, nunca punição               | `negative`, `destructive`. Vermelho puro é punição para quem já se sente mal com dinheiro            |
+| **Neutros quentes** | com traço de verde, nunca cinza puro | fundo, `muted`. Planilha é fria, e frieza afasta esse público                                        |
 
 Famílias de token disponíveis, além das do shadcn (`background`, `foreground`,
 `card`, `muted`, `border`, `input`, `ring`, `primary`, `secondary`, `accent`,
@@ -85,6 +85,37 @@ reduzir ruído no número principal.
 
 Entrada de valor é `<MoneyInput>` / `<AmountKeypad>`, que usam `parseBRL` — texto
 digitado vira centavos **sem float intermediário**.
+
+## Movimento
+
+A animação existe para EXPLICAR o que aconteceu, nunca para enfeitar. Um card
+que sobe ao aparecer diz "isto é novo"; um número que corre diz "isto mudou por
+causa do que você fez". O resto é ruído — e num app de dinheiro, ruído lê como
+instabilidade.
+
+**Quem anima é o Motion** (`m` + `domAnimation`, nunca o `motion` completo —
+o `LazyMotion` está em `strict` e reprova). As peças:
+
+| Peça                             | Onde                           | Para                                                                  |
+| -------------------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `<Reveal>`                       | `components/motion/reveal.tsx` | entrada de um bloco. `onMount` acima da dobra, senão espera a rolagem |
+| `<Stagger>` / `<StaggerItem>`    | idem                           | cascata de lista ou grade                                             |
+| `AnimatePresence` + `forceMount` | primitivos de `ui/`            | camadas que precisam animar a SAÍDA (sheet, diálogo, popover, dica)   |
+| `<CountingMoney>`                | `components/money/`            | o único lugar em que a animação É a informação                        |
+| `transitions.ts`                 | `components/motion/`           | as durações da casa. Não invente número novo                          |
+
+**Continua em CSS**, e o motivo importa:
+
+- **Laço infinito de ambiente** — feixe, halo, varredura. Roda para sempre; em
+  JS disputaria quadro com a rolagem.
+- **Acordeão** — a altura de "aberto" vem de uma variável que o Radix mede.
+  Fazer isso no Motion exigiria manter o conteúdo montado ao fechar, e conteúdo
+  colapsado na árvore de acessibilidade é lido como se estivesse aberto.
+- **Pulso do esqueleto** — carregando é exatamente quando não se quer JS extra.
+
+Duas travas que não se removem: o `<noscript>` do layout raiz (o Motion escreve
+`opacity: 0` no HTML do servidor — sem ele, JS quebrado é tela em branco) e o
+`reducedMotion="user"` do provider.
 
 ## Escala e forma
 

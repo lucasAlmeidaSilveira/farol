@@ -10,9 +10,9 @@ import {
   Zap,
 } from 'lucide-react'
 
+import { Reveal } from '@/components/motion/reveal'
 import { type FeatureIcon, FEATURES, SECTIONS } from '@/content/landing'
 
-import { Reveal } from './motion'
 import { Section, SectionHeading } from './section'
 
 /**
@@ -57,7 +57,11 @@ export function FeaturesSection() {
 
             return (
               <li key={feature.id} className="group flex">
-                <Reveal delay={index * 0.06} className="flex flex-col gap-3">
+                <Reveal
+                  variant="reveal"
+                  delay={index * 0.06}
+                  className="flex flex-col gap-3"
+                >
                   {/* O ícone acende ao passar o mouse: o brilho do farol
                       vazando por baixo, o mesmo vocabulário do resto da
                       página. */}

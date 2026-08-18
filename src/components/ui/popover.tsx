@@ -1,14 +1,42 @@
 'use client'
 
+import { AnimatePresence, m } from 'motion/react'
 import { Popover as PopoverPrimitive } from 'radix-ui'
 import * as React from 'react'
 
+import { DURATION, EASE } from '@/components/motion/transitions'
+import { usePresenceOpen } from '@/components/motion/use-presence-open'
 import { cn } from '@/lib/utils'
 
+/**
+ * Popover com entrada e saída animadas pelo Motion.
+ *
+ * Cresce a partir da origem que o Radix calcula — a variável
+ * `--radix-popover-content-transform-origin` aponta para o gatilho —, então o
+ * painel parece SAIR do botão que a pessoa tocou, e não aparecer solto na
+ * tela. É mais curto que um sheet: popover é resposta imediata, não camada.
+ */
+
+const PopoverOpenContext = React.createContext(false)
+
 function Popover({
+  open,
+  defaultOpen,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />
+  const presence = usePresenceOpen({ open, defaultOpen, onOpenChange })
+
+  return (
+    <PopoverOpenContext value={presence.isOpen}>
+      <PopoverPrimitive.Root
+        data-slot="popover"
+        open={presence.isOpen}
+        onOpenChange={presence.onOpenChange}
+        {...props}
+      />
+    </PopoverOpenContext>
+  )
 }
 
 function PopoverTrigger({
@@ -19,23 +47,41 @@ function PopoverTrigger({
 
 function PopoverContent({
   className,
+  children,
   align = 'center',
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+  const open = React.use(PopoverOpenContext)
+
   return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        data-slot="popover-content"
-        align={align}
-        sideOffset={sideOffset}
-        className={cn(
-          'bg-popover text-popover-foreground data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden',
-          className,
-        )}
-        {...props}
-      />
-    </PopoverPrimitive.Portal>
+    <AnimatePresence>
+      {open ? (
+        <PopoverPrimitive.Portal forceMount>
+          <PopoverPrimitive.Content
+            forceMount
+            asChild
+            align={align}
+            sideOffset={sideOffset}
+            {...props}
+          >
+            <m.div
+              data-slot="popover-content"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: DURATION.reaction, ease: EASE }}
+              className={cn(
+                'bg-popover text-popover-foreground z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-md outline-hidden',
+                className,
+              )}
+            >
+              {children}
+            </m.div>
+          </PopoverPrimitive.Content>
+        </PopoverPrimitive.Portal>
+      ) : null}
+    </AnimatePresence>
   )
 }
 

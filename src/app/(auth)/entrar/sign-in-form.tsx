@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import { ProviderButton } from '@/components/auth/provider-button'
 import { FarolLockup } from '@/components/brand/farol-lockup'
+import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { activeProviders, type ProviderId } from '@/data/auth-providers'
 import {
   consumeRedirectPending,
@@ -157,28 +158,42 @@ function BrandPanel() {
         os quatro passos — mexer na estrutura muda o ritmo, e é assim que deve
         ser: a animação segue o conteúdo, não uma contagem arbitrária.
       */}
-      <div className="stagger-hero relative flex h-full flex-col justify-between gap-12">
-        <FarolLockup size={34} tone="onDark" />
+      <Stagger
+        step={0.11}
+        className="relative flex h-full flex-col justify-between gap-12"
+      >
+        <StaggerItem>
+          <FarolLockup size={34} tone="onDark" />
+        </StaggerItem>
 
-        <p className="max-w-sm text-3xl leading-[1.15] font-semibold tracking-tight text-balance">
-          Descubra quanto você pode gastar até o fim do mês.
-        </p>
+        <StaggerItem>
+          <p className="max-w-sm text-3xl leading-[1.15] font-semibold tracking-tight text-balance">
+            Descubra quanto você pode gastar até o fim do mês.
+          </p>
+        </StaggerItem>
 
-        <ul className="flex max-w-sm flex-col gap-4">
-          <Point title="Um número, não uma planilha">
-            O Farol calcula o que sobra depois das contas e dos compromissos.
-          </Point>
-          <Point title="Conta com o que ainda vai entrar">
-            Registrou um freela? Tudo se ajusta na hora, inclusive os
-            percentuais.
-          </Point>
-          <Point title="Funciona sem internet">
-            Lance na fila do mercado. Sincroniza sozinho quando o sinal voltar.
-          </Point>
-        </ul>
+        <StaggerItem as="div">
+          <ul className="flex max-w-sm flex-col gap-4">
+            <Point title="Um número, não uma planilha">
+              O Farol calcula o que sobra depois das contas e dos compromissos.
+            </Point>
+            <Point title="Conta com o que ainda vai entrar">
+              Registrou um freela? Tudo se ajusta na hora, inclusive os
+              percentuais.
+            </Point>
+            <Point title="Funciona sem internet">
+              Lance na fila do mercado. Sincroniza sozinho quando o sinal
+              voltar.
+            </Point>
+          </ul>
+        </StaggerItem>
 
-        <p className="text-beacon-muted text-sm">Clareza sobre o seu dinheiro.</p>
-      </div>
+        <StaggerItem>
+          <p className="text-beacon-muted text-sm">
+            Clareza sobre o seu dinheiro.
+          </p>
+        </StaggerItem>
+      </Stagger>
     </aside>
   )
 }

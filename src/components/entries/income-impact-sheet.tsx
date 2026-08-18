@@ -1,5 +1,6 @@
 'use client'
 
+import { CountingMoney } from '@/components/money/counting-money'
 import { MoneyValue } from '@/components/money/money-value'
 import { Button } from '@/components/ui/button'
 import {
@@ -137,7 +138,9 @@ function ImpactRow({
         <span aria-hidden="true" className="text-muted-foreground">
           →
         </span>
-        <MoneyValue cents={after} size="lg" tone={tone} />
+        {/* O número corre de `before` a `after`: é o único momento do app em
+            que a animação É a informação, e não o enfeite dela. */}
+        <CountingMoney from={before} to={after} size="lg" tone={tone} />
         <span
           className={
             tone === 'covenant'
