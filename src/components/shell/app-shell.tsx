@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { collapsed, toggle } = useSidebarState()
 
   /*
-    Atalho do PWA: `/?novo=expense` abre o lançamento já na tela Hoje.
+    Atalho do PWA: `/hoje?novo=expense` abre o lançamento já na tela Hoje.
 
     Lido de `window.location` e não de `useSearchParams()` de propósito — o
     hook obrigaria estas páginas estáticas a uma fronteira de Suspense só para
@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           */}
           {!canLaunch ? (
             <div className="hidden items-center justify-between px-10 pt-6 lg:flex">
-              <Link href="/" aria-label="Farol — início">
+              <Link href="/hoje" aria-label="Farol — início">
                 <FarolLockup size={26} />
               </Link>
               <AccountMenu compact />

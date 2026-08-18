@@ -37,7 +37,7 @@ export function PageHeader({
           inalcançável justamente no estado sem plano, onde a navegação inteira
           não é montada e esta é a única marca na tela.
         */}
-        <Link href="/" aria-label="Farol — início" className="shrink-0">
+        <Link href="/hoje" aria-label="Farol — início" className="shrink-0">
           <FarolLockup size={26} />
         </Link>
 

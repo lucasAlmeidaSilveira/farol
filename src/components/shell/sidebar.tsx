@@ -96,7 +96,7 @@ export function Sidebar({
         ) : (
           <>
             <Link
-              href="/"
+              href="/hoje"
               aria-label="Farol — início"
               className="flex min-w-0 flex-1"
             >

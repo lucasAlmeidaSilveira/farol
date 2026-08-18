@@ -22,10 +22,7 @@
       "Bash(git show*)",
       "Bash(git branch*)"
     ],
-    "ask": [
-      "Bash(pnpm rules:deploy:prod*)",
-      "Bash(firebase deploy*)"
-    ],
+    "ask": ["Bash(pnpm rules:deploy:prod*)", "Bash(firebase deploy*)"],
     "deny": [
       "Bash(git push*)",
       "Bash(npx shadcn*)",
@@ -44,6 +41,17 @@
             "statusMessage": "Formatando e ordenando imports...",
             "timeout": 60,
             "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; cd \"${CLAUDE_PROJECT_DIR:-.}\"; case \"$f\" in *.ts|*.tsx|*.mts|*.mjs|*.css|*.json|*.md) pnpm exec prettier --write \"$f\";; esac; case \"$f\" in *.ts|*.tsx|*.mts|*.mjs) pnpm exec eslint --fix \"$f\";; esac; } 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "Conferindo se a landing precisa acompanhar...",
+            "timeout": 10,
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *\"/src/app/(app)/\"*|*\"/src/app/(onboarding)/\"*|*\"/src/components/home/\"*|*\"/src/components/plan/\"*|*\"/src/components/entries/\"*|*\"/src/components/shell/nav-items\"*|*\"/src/domain/presets\"*) echo \"LANDING: este arquivo e area de funcionalidade. Se a mudanca altera O QUE o Farol faz (nao so como ele faz), a landing publica entra no MESMO commit: carregue a skill landing-farol e atualize src/content/landing.ts. Se foi refatoracao, correcao ou ajuste visual, ignore este lembrete.\";; esac; } 2>/dev/null || true"
           }
         ]
       }

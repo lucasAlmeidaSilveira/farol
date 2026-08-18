@@ -12,13 +12,18 @@ import { QueryProvider } from './query-provider'
 /**
  * Rotas que ignoram a preferência de tema e renderizam sempre no claro.
  *
- * A tela de entrada é uma vitrine, não uma ferramenta: quem chega ali muitas
- * vezes ainda não é usuário e nunca escolheu tema nenhum — o que o navegador
- * reporta é a preferência do sistema, não uma decisão sobre o Farol. Fixar o
- * claro dá a essa primeira tela um enquadramento único e previsível, que é
+ * São as duas telas de VITRINE — a landing e a entrada. Quem chega nelas
+ * muitas vezes ainda não é usuário e nunca escolheu tema nenhum: o que o
+ * navegador reporta é a preferência do sistema, não uma decisão sobre o Farol.
+ * Fixar o claro dá a essas telas um enquadramento único e previsível, que é
  * também o que a arte da marca assume.
+ *
+ * As duas juntas, e não só a entrada, porque elas são a mesma sequência: a
+ * landing termina num botão que leva ao login, e trocar de esquema de cor no
+ * meio de um funil de dois passos lê como se fossem dois produtos diferentes.
+ * Dentro do app, a preferência volta a valer.
  */
-const FORCE_LIGHT = new Set(['/entrar'])
+const FORCE_LIGHT = new Set(['/', '/entrar'])
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

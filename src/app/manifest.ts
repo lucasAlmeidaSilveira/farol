@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Farol — clareza sobre o seu dinheiro',
     short_name: 'Farol',
     description: 'Quanto você pode gastar este mês.',
-    start_url: '/?src=pwa',
+    start_url: '/hoje?src=pwa',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
@@ -29,8 +29,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // para uma rota /novo: o destino do atalho É a Hoje com o lançamento
     // aberto por cima, então uma rota separada só somaria um redirecionamento.
     shortcuts: [
-      { name: 'Lancei um gasto', url: '/?novo=expense' },
-      { name: 'Entrou dinheiro', url: '/?novo=income' },
+      { name: 'Lancei um gasto', url: '/hoje?novo=expense' },
+      { name: 'Entrou dinheiro', url: '/hoje?novo=income' },
     ],
   }
 }

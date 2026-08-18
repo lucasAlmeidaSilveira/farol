@@ -20,6 +20,10 @@ Se algo tocou em `src/domain/` ou `src/engine/`, troque `pnpm test` por
 `pnpm test:coverage`: essas duas pastas exigem 100% de linhas, statements e
 functions, e o teste comum não verifica o limiar.
 
+Se o `git diff` mostrar funcionalidade nova ou mudada — tela, fluxo ou promessa,
+não refatoração —, confira se a landing acompanhou: `src/content/landing.ts` faz
+parte da entrega, e a skill `landing-farol` diz o que conta.
+
 ## Ao falhar
 
 - **Falha mecânica** (formatação, ordem de import, tipo óbvio, import não usado):

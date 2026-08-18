@@ -59,7 +59,7 @@ export function SignInForm() {
     tela de login é aparência de erro.
   */
   useEffect(() => {
-    if (user) router.replace('/')
+    if (user) router.replace('/hoje')
   }, [user, router])
 
   async function handleSignIn(id: ProviderId) {

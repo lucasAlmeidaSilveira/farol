@@ -57,7 +57,7 @@ export function OnboardingFlow() {
     da home dobraria sem explicação.
   */
   useEffect(() => {
-    if (sources && sources.length > 0) router.replace('/')
+    if (sources && sources.length > 0) router.replace('/hoje')
   }, [sources, router])
 
   const [step, setStep] = useState<Step>('income')
@@ -94,7 +94,7 @@ export function OnboardingFlow() {
             dueDay: null,
           })),
       })
-      router.replace('/')
+      router.replace('/hoje')
     } catch (caught) {
       toast.error(errorMessage(caught))
     }
@@ -125,7 +125,7 @@ export function OnboardingFlow() {
           */}
           <button
             type="button"
-            onClick={index === 0 ? () => router.push('/') : goBack}
+            onClick={index === 0 ? () => router.push('/hoje') : goBack}
             aria-label={index === 0 ? 'Voltar para o início' : 'Voltar'}
             className="text-muted-foreground"
           >
