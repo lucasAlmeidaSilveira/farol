@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 
 import { OfflineBar } from '@/components/shell/offline-bar'
+import { SITE_URL } from '@/lib/site'
 import { Providers } from '@/providers/providers'
 
 const inter = Inter({
@@ -14,6 +15,10 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  // Base das URLs absolutas (canônico, OG, sitemap). Sem ela o Next monta as
+  // tags de compartilhamento em caminho relativo e a prévia do link chega
+  // quebrada em WhatsApp e Telegram.
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'Farol — clareza sobre o seu dinheiro',
     template: '%s · Farol',

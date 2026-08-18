@@ -11,17 +11,17 @@ que falham em silêncio e o fluxo de trabalho.
 
 ## Comandos
 
-| Comando | Quando | Detalhe que importa |
-| --- | --- | --- |
-| `pnpm dev` | Sempre | Roda contra o **`farol-app-dev` real, na nuvem**. Não há emulador no dia a dia. |
-| `pnpm typecheck` | Antes de qualquer entrega | Roda `next typegen` **antes** do `tsc`. Não troque por `tsc --noEmit` direto: `LayoutProps`/`PageProps` são gerados em `.next/types` e um clone limpo reprova código correto sem eles. |
-| `pnpm lint` | Antes de qualquer entrega | Tem `--fix`. No CI é `pnpm exec eslint`, sem fix — lá o lint reprova, não conserta. |
-| `pnpm test` | Mexeu em `domain/` ou `engine/` | Vitest em ambiente `node`, sem jsdom e sem mock de Firebase. |
-| `pnpm test:coverage` | Mexeu em `domain/` ou `engine/` | **100% de linhas, statements e functions.** Abaixo disso, reprova. |
-| `pnpm test:rules` | Mexeu em `firestore.rules` | Sobe e derruba um emulador efêmero sozinho. Exige JDK 21+ — o script já prefixa o `openjdk@21` do Homebrew no `PATH`. **Não mexa no `java` global**, outros projetos dependem do 17. |
-| `pnpm build` | Antes de abrir PR | Gera o service worker junto. |
-| `pnpm palette` | Mexeu em cor | Verifica o contraste de todos os pares. |
-| `pnpm palette:write` | Mexeu em cor | Regenera os tokens no `globals.css`. Edite `scripts/palette-source.mjs`, nunca o CSS. |
+| Comando              | Quando                          | Detalhe que importa                                                                                                                                                                    |
+| -------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`           | Sempre                          | Roda contra o **`farol-app-dev` real, na nuvem**. Não há emulador no dia a dia.                                                                                                        |
+| `pnpm typecheck`     | Antes de qualquer entrega       | Roda `next typegen` **antes** do `tsc`. Não troque por `tsc --noEmit` direto: `LayoutProps`/`PageProps` são gerados em `.next/types` e um clone limpo reprova código correto sem eles. |
+| `pnpm lint`          | Antes de qualquer entrega       | Tem `--fix`. No CI é `pnpm exec eslint`, sem fix — lá o lint reprova, não conserta.                                                                                                    |
+| `pnpm test`          | Mexeu em `domain/` ou `engine/` | Vitest em ambiente `node`, sem jsdom e sem mock de Firebase.                                                                                                                           |
+| `pnpm test:coverage` | Mexeu em `domain/` ou `engine/` | **100% de linhas, statements e functions.** Abaixo disso, reprova.                                                                                                                     |
+| `pnpm test:rules`    | Mexeu em `firestore.rules`      | Sobe e derruba um emulador efêmero sozinho. Exige JDK 21+ — o script já prefixa o `openjdk@21` do Homebrew no `PATH`. **Não mexa no `java` global**, outros projetos dependem do 17.   |
+| `pnpm build`         | Antes de abrir PR               | Gera o service worker junto.                                                                                                                                                           |
+| `pnpm palette`       | Mexeu em cor                    | Verifica o contraste de todos os pares.                                                                                                                                                |
+| `pnpm palette:write` | Mexeu em cor                    | Regenera os tokens no `globals.css`. Edite `scripts/palette-source.mjs`, nunca o CSS.                                                                                                  |
 
 O gate antes de abrir PR é `pnpm typecheck && pnpm lint && pnpm test && pnpm build`
 — mais `pnpm test:rules` se as rules mudaram. Use `/verificar` para rodar tudo.
@@ -48,6 +48,15 @@ Cada item já custou tempo uma vez.
 - **Não use `NEXT_PUBLIC_` em nada que seja segredo.** O Next inlina o valor no
   bundle de qualquer arquivo que referencie a variável. O MVP não tem segredo de
   servidor: a autorização inteira vive nas Security Rules.
+- **Não use o Motion dentro do app.** Ele entrou como dependência da **landing**
+  (`src/components/landing/motion.tsx`), onde o movimento precisa saber onde a
+  pessoa está na rolagem. Dentro do app o movimento é curto e reativo — 150ms de
+  resposta, 250ms de entrada — e CSS resolve sem custo. Importar `motion` numa
+  tela do produto cobra bundle de quem só quer ver um número.
+- **Não anime laço infinito com JavaScript.** Feixe, halo e varredura vivem em
+  `@utility` no `globals.css` de propósito: laço infinito em JS disputa quadro
+  com a rolagem. A regra é simples — o que roda para sempre é CSS, o que reage à
+  pessoa é Motion.
 - **Não dê `git push`.** Commit quando pedido; push é decisão do usuário.
 - **Não faça deploy de rules junto com o merge.** `pnpm rules:deploy:prod` é
   manual e separado, de propósito, e exige `pnpm test:rules` verde antes.
@@ -96,6 +105,11 @@ Detalhes em `.claude/skills/engine-financeira/SKILL.md`.
 
 - **Identificadores em inglês, UI em pt-BR.** Decidido em 2026-08-15. Vale para
   tipos, funções, arquivos e chaves; textos visíveis e comentários em português.
+- **Mudou funcionalidade? A landing muda no mesmo commit.** `/` é a página
+  pública e `src/content/landing.ts` é todo o texto dela. Ela não quebra quando
+  fica desatualizada — só passa a mentir para quem ainda não é usuário, que é o
+  único público que ela tem. Como decidir se a mudança conta: skill
+  `landing-farol`.
 - **Estilo:** sem ponto e vírgula, aspas simples, trailing comma, 80 colunas.
   Prettier + `simple-import-sort` resolvem — não formate à mão.
 - **Arquitetura `app → data → engine → domain`, verificada pelo ESLint.**
@@ -115,7 +129,8 @@ src/engine/     computeMonth e amigos. Função pura estado → MonthSummary.
 src/data/       ÚNICA camada que conhece Firebase. paths.ts tem todos os caminhos.
 src/hooks/      Subscriptions (useFirestoreQuery) e mutations, por domínio.
 src/components/ ui/ (primitivos) + por feature.
-src/app/        Rotas do App Router.
+src/content/    Texto da landing. O que o Farol promete em público.
+src/app/        Rotas do App Router. `/` é a landing; o app começa em `/hoje`.
 scripts/        Paleta e ícones. palette-source.mjs é a fonte das cores.
 tests/rules/    Security Rules contra o emulador.
 ```
@@ -123,6 +138,10 @@ tests/rules/    Security Rules contra o emulador.
 Pontos de entrada quando estiver perdido: `src/engine/compute.ts` (o
 orquestrador), `src/domain/types.ts` (o contrato entre as camadas),
 `src/data/paths.ts` (o mapa do Firestore).
+
+Duas rotas raiz, e a distinção importa: `/` é a **landing pública**, estática e
+sem sessão, e `/hoje` é a primeira tela do app, atrás do `SessionGate`. Link
+para "o início" dentro do app aponta para `/hoje`, nunca para `/`.
 
 ## Armadilhas da camada de dados
 
@@ -139,11 +158,12 @@ orquestrador), `src/domain/types.ts` (o contrato entre as camadas),
 
 Carregue a skill antes de mexer na área correspondente:
 
-| Skill | Para |
-| --- | --- |
-| `engine-financeira` | `src/domain/`, `src/engine/` — dinheiro, ciclo, compromissos |
-| `dados-firestore` | `src/data/`, `src/hooks/`, `firestore.rules` |
-| `design-system-farol` | `src/components/`, `globals.css`, paleta |
+| Skill                 | Para                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| `engine-financeira`   | `src/domain/`, `src/engine/` — dinheiro, ciclo, compromissos |
+| `dados-firestore`     | `src/data/`, `src/hooks/`, `firestore.rules`                 |
+| `design-system-farol` | `src/components/`, `globals.css`, paleta                     |
+| `landing-farol`       | a página pública — e **toda** mudança de funcionalidade      |
 
 Subagentes: `revisor-financeiro` (auditar mudança em dinheiro), `dev-ui-farol`
 (implementar tela ponta a ponta). Comandos: `/verificar`, `/rules`, `/paleta`.

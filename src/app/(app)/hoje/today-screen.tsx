@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 
-import type { Slice } from '@/components/home/allocation-bar'
 import { BeaconCard } from '@/components/home/beacon-card'
+import {
+  beaconViewOf,
+  proportionalLineOf,
+} from '@/components/home/beacon-view'
 import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { EmptyBeacon } from '@/components/home/empty-beacon'
@@ -18,7 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { BeaconSkeleton, Skeleton } from '@/components/ui/skeleton'
-import { add, ZERO } from '@/domain/money'
+import { ZERO } from '@/domain/money'
 import { calendarPeriodOf, todayIn } from '@/domain/period'
 import type { IncomeSource } from '@/domain/types'
 import type { DueItem } from '@/engine'
@@ -127,33 +130,7 @@ function LoadedState({
     })
   }
 
-  const covenant = summary.commitments.find(
-    (line) => line.type === 'proportional',
-  )
-  const fixedTotal = add(
-    ...summary.commitments
-      .filter((line) => line.type !== 'proportional')
-      .map((line) => line.consideredCents),
-  )
-
-  const slices: Slice[] = [
-    {
-      id: 'covenant',
-      label: covenant?.name ?? 'Proporcional',
-      amountCents: covenant?.consideredCents ?? ZERO,
-    },
-    { id: 'fixed', label: 'Contas fixas', amountCents: fixedTotal },
-    {
-      id: 'spent',
-      label: 'Gastos',
-      amountCents: summary.totals.freeExpenseCents,
-    },
-    {
-      id: 'free',
-      label: 'Livre',
-      amountCents: summary.totals.remainingToSpendCents,
-    },
-  ]
+  const covenant = proportionalLineOf(summary)
 
   const noEntriesYet =
     summary.totals.freeExpenseCents === ZERO &&
@@ -162,19 +139,10 @@ function LoadedState({
   return (
     <div className="stagger grid gap-6 lg:grid-cols-12">
       <div className="flex flex-col gap-6 lg:col-span-7">
-        <BeaconCard
-          remainingCents={summary.totals.remainingToSpendCents}
-          dailyPaceCents={summary.pace.dailyPaceCents}
-          remainingDays={summary.pace.remainingDays}
-          slices={slices}
-          state={
-            summary.totals.remainingToSpendCents < 0
-              ? 'out'
-              : summary.pace.status === 'ahead'
-                ? 'dim'
-                : 'lit'
-          }
-        />
+        {/* A tradução resumo -> props mora em `beaconViewOf` porque a landing
+            mostra este mesmo card com um exemplo, e as duas não podem
+            divergir. */}
+        <BeaconCard {...beaconViewOf(summary)} />
 
         {noEntriesYet ? (
           <p className="text-muted-foreground bg-muted rounded-lg px-4 py-3 text-sm text-balance">

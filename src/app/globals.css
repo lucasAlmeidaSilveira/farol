@@ -343,14 +343,19 @@
 }
 
 /*
-  A TELA DE ENTRADA é a única superfície com animação longa, e vale explicar
-  por quê: ela é vista uma vez, sem tarefa pendente e sem número esperando
-  leitura. Dentro do app a regra continua 150ms/250ms, porque lá a animação
-  atrasa alguém que está tentando fazer algo.
+  AS VITRINES — a landing e a tela de entrada — são as únicas superfícies com
+  animação longa, e vale explicar por quê: são vistas sem tarefa pendente e sem
+  número esperando leitura. Dentro do app a regra continua 150ms/250ms, porque
+  lá a animação atrasa alguém que está tentando fazer alguma coisa.
 
-  Aqui o movimento carrega a marca: um farol é, literalmente, uma luz que varre
-  o escuro. A varredura é lenta e de opacidade baixa de propósito — deve ser
-  percebida como ambiente, nunca como um objeto girando na tela.
+  Aqui o movimento carrega a marca, e o vocabulário é um só: LUZ. Um farol é,
+  literalmente, uma luz que varre o escuro — então tudo que se move nestas duas
+  telas é feixe, halo, varredura ou revelação. Nada de translado gratuito,
+  nada de elástico, nada de objeto girando: um app de dinheiro que parece uma
+  apresentação perde a única coisa que precisa transmitir, que é firmeza.
+
+  A régua para saber se passou do ponto é sempre a mesma: se dá para acompanhar
+  o movimento com os olhos e ele rouba a atenção do texto, está forte demais.
 */
 
 @keyframes farol-beam-sweep {
@@ -407,6 +412,67 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   OS LAÇOS DE AMBIENTE DA LANDING.
+
+   A divisão de trabalho com o Motion (a biblioteca que anima a página, em
+   `components/landing/motion.tsx`) é deliberada e vale a explicação:
+
+   - **Aqui, o que roda para sempre**: o feixe girando, o halo que respira, a
+     varredura de luz. São laços infinitos e puramente decorativos; mantê-los em
+     CSS significa que o compositor do navegador cuida deles sozinho, sem
+     disputar quadro com a rolagem.
+   - **Lá, o que reage à pessoa**: entrada ao chegar na tela, direção, mola,
+     progresso de rolagem. Isso depende de saber ONDE a pessoa está, e em CSS
+     dependeria de `animation-timeline`, que ainda não existe em toda parte —
+     numa página cujo argumento é confiança, conteúdo que pode não aparecer não
+     se paga.
+
+   Os dois lados respeitam `prefers-reduced-motion`: aqui pelo corte global lá
+   embaixo, lá pelo `reducedMotion="user"` do Motion.
+   -------------------------------------------------------------------------- */
+
+/* A luz do farol atravessando um card. É o feixe passando por cima da peça, e
+   por isso cruza em segundos e demora para voltar: varredura de farol tem
+   intervalo, senão vira pisca-pisca — e pisca-pisca em cima de um número de
+   dinheiro lê como alerta. */
+@keyframes farol-sheen {
+  0% {
+    transform: translateX(-140%) skewX(-12deg);
+  }
+  /* A espera é a maior parte do ciclo: ~2,4s de passagem para ~9s parado. */
+  22%,
+  100% {
+    transform: translateX(420%) skewX(-12deg);
+  }
+}
+
+/* Halo que vagueia. Duas camadas com durações que não se dividem nunca repetem
+   o mesmo encontro, e é isso que faz o fundo parecer vivo em vez de um laço. */
+@keyframes farol-drift {
+  33% {
+    transform: translate3d(6%, -4%, 0) scale(1.12);
+  }
+  66% {
+    transform: translate3d(-5%, 5%, 0) scale(0.94);
+  }
+}
+
+@utility animate-sheen {
+  animation: farol-sheen 11s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+@utility animate-drift {
+  animation: farol-drift 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+@utility animate-drift-slow {
+  animation: farol-drift 41s ease-in-out infinite reverse;
+  will-change: transform;
+}
+
 @layer base {
   /* Sheets do Radix. */
   [data-state='open'][data-slot='sheet-overlay'] {
@@ -414,6 +480,13 @@
   }
   [data-state='open'][data-slot='sheet-content'] {
     animation: farol-slide-up 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Abas do Radix. Sem isto, trocar de aba troca o conteúdo sem nenhum sinal de
+     que algo aconteceu — e num painel com quatro abas parecidas, a pessoa fica
+     sem saber se o clique pegou. */
+  [data-slot='tabs-content'][data-state='active'] {
+    animation: farol-rise 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   /*

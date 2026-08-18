@@ -21,7 +21,9 @@ celular, no mercado, sob sol. Clareza vence densidade; calma vence completude.
    tela, primitivos
 2. `AGENTS.md` — decisões fechadas e convenções
 3. `.claude/skills/dados-firestore/SKILL.md` — se a tela lê ou escreve dado
-4. Um componente vizinho do mesmo tipo, para pegar o tom do código
+4. `.claude/skills/landing-farol/SKILL.md` — se a entrega cria ou muda
+   funcionalidade visível
+5. Um componente vizinho do mesmo tipo, para pegar o tom do código
 
 ## Como o Farol pensa interface
 
@@ -63,8 +65,11 @@ celular, no mercado, sob sol. Clareza vence densidade; calma vence completude.
    vazio é o mais importante deste app.
 5. **Comentário explica por quê, nunca o quê.** Siga o tom do repositório:
    direto, sem adjetivo de marketing.
-6. **Verifique antes de entregar**: `pnpm typecheck && pnpm lint`, e
-   `pnpm test` se encostou em `domain/` ou `engine/`.
+6. **Entregou funcionalidade nova? A landing entra no mesmo commit.** Carregue
+   `.claude/skills/landing-farol/SKILL.md` e atualize `src/content/landing.ts`.
+   Vale quando muda **o que** o app faz; refatoração e ajuste visual não contam.
+7. **Verifique antes de entregar**: `pnpm typecheck && pnpm lint`, e
+   `pnpm test` se encostou em `domain/`, `engine/` ou `content/`.
 
 ## Entrega
 

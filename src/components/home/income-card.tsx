@@ -35,6 +35,15 @@ export type IncomeCardProps = {
   cycle: Cycle
   /** As fontes cruas — só elas sabem em que dia a renda cai. */
   sources?: readonly IncomeSource[]
+  /**
+   * Abre a composição já expandida.
+   *
+   * Existe para a landing, onde o card é vitrine e não ferramenta: ali a
+   * abertura É o argumento, e ninguém vai clicar num acordeão de exemplo. No
+   * app segue fechado — a home tem um número que manda, e a composição é
+   * informação de segundo nível.
+   */
+  defaultOpen?: boolean
 }
 
 export function IncomeCard({
@@ -42,6 +51,7 @@ export function IncomeCard({
   totalCents,
   cycle,
   sources,
+  defaultOpen = false,
 }: IncomeCardProps) {
   const describe = (line: IncomeLine) => stateOf(line, cycle, sources)
 
@@ -68,7 +78,11 @@ export function IncomeCard({
 
   return (
     <Card className="gap-0 py-0">
-      <Accordion type="single" collapsible>
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue={defaultOpen ? 'lines' : undefined}
+      >
         <AccordionItem value="lines" className="border-b-0">
           {/*
             `hover:no-underline` porque o sublinhado padrão do gatilho pegaria o
