@@ -44,35 +44,35 @@ export function usePresenceOpen({
     fechava um sheet e voltava para o topo do documento, tendo que percorrer a
     tela inteira de novo. Na interação mais usada do app.
 
-    São duas referências, e a separação é o que faz funcionar: `ultimoRef`
-    acompanha o foco enquanto a camada está fechada, e `origemRef` CONGELA esse
-    valor no instante da abertura. Guardar direto em `origemRef` não serve — ao
+    São duas referências, e a separação é o que faz funcionar: `lastFocusedRef`
+    acompanha o foco enquanto a camada está fechada, e `originRef` CONGELA esse
+    valor no instante da abertura. Guardar direto em `originRef` não serve — ao
     fechar, o efeito rodaria de novo e sobrescreveria a origem com um elemento
     de dentro da camada que está saindo.
   */
-  const ultimoRef = useRef<HTMLElement | null>(null)
-  const origemRef = useRef<HTMLElement | null>(null)
-  const estavaAberto = useRef(isOpen)
+  const lastFocusedRef = useRef<HTMLElement | null>(null)
+  const originRef = useRef<HTMLElement | null>(null)
+  const wasOpen = useRef(isOpen)
 
   useEffect(() => {
     if (isOpen) {
-      if (!estavaAberto.current) origemRef.current = ultimoRef.current
-      estavaAberto.current = true
+      if (!wasOpen.current) originRef.current = lastFocusedRef.current
+      wasOpen.current = true
       return
     }
 
-    estavaAberto.current = false
+    wasOpen.current = false
 
-    const anota = () => {
-      const alvo = document.activeElement
-      if (alvo instanceof HTMLElement && alvo !== document.body) {
-        ultimoRef.current = alvo
+    const track = () => {
+      const target = document.activeElement
+      if (target instanceof HTMLElement && target !== document.body) {
+        lastFocusedRef.current = target
       }
     }
 
-    anota()
-    document.addEventListener('focusin', anota)
-    return () => document.removeEventListener('focusin', anota)
+    track()
+    document.addEventListener('focusin', track)
+    return () => document.removeEventListener('focusin', track)
   }, [isOpen])
 
   /*
@@ -84,31 +84,31 @@ export function usePresenceOpen({
     não mudava o `activeElement`, nem no `onCloseAutoFocus`, nem no
     `onExitComplete`, nem um quadro depois de nenhum dos dois.
 
-    Em vez de adivinhar o instante, tenta a cada quadro até funcionar, com teto
+    Em vez de adivinhar o instante, attempt a cada quadro até funcionar, com teto
     de meio segundo — pouco mais que a animação de saída. Assim que o foco
     assenta no destino, o laço para.
   */
   useEffect(() => {
     if (isOpen) return
 
-    const alvo = origemRef.current
-    if (!alvo?.isConnected) return
+    const target = originRef.current
+    if (!target?.isConnected) return
 
-    let cancelado = false
-    let tentativas = 0
+    let cancelled = false
+    let attempts = 0
 
-    const tenta = () => {
-      if (cancelado || tentativas > 40) return
-      tentativas += 1
-      if (document.activeElement === alvo) return
+    const attempt = () => {
+      if (cancelled || attempts > 40) return
+      attempts += 1
+      if (document.activeElement === target) return
 
-      alvo.focus({ preventScroll: true })
-      if (document.activeElement !== alvo) requestAnimationFrame(tenta)
+      target.focus({ preventScroll: true })
+      if (document.activeElement !== target) requestAnimationFrame(attempt)
     }
 
-    requestAnimationFrame(tenta)
+    requestAnimationFrame(attempt)
     return () => {
-      cancelado = true
+      cancelled = true
     }
   }, [isOpen])
 
