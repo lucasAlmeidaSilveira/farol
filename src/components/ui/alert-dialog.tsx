@@ -75,7 +75,18 @@ function AlertDialogContent({
             />
           </AlertDialogPrimitive.Overlay>
 
-          <AlertDialogPrimitive.Content forceMount asChild {...props}>
+          <AlertDialogPrimitive.Content
+            forceMount
+            asChild
+            onCloseAutoFocus={(event) => {
+              // O Radix focaria o gatilho dele, que aqui não existe. Barrar o
+              // padrão evita um salto de foco no meio da animação de saída;
+              // quem devolve é o `onExitComplete`, quando o nó já saiu.
+              event.preventDefault()
+              props.onCloseAutoFocus?.(event)
+            }}
+            {...props}
+          >
             <m.div
               data-slot="alert-dialog-content"
               initial={{ opacity: 0, scale: 0.96 }}
