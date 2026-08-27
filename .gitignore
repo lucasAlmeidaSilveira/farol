@@ -53,3 +53,17 @@ ui-debug.log
 # O .claude/ é versionado de propósito: instruções, skills e agentes valem para
 # quem clonar. Só os overrides pessoais de permissão ficam de fora.
 .claude/settings.local.json
+
+# Skills instaladas por `npx skills`.
+#
+# O que viaja no clone é o `skills-lock.json` — origem e hash exatos de cada
+# skill —, e `npx skills experimental_install` restaura a partir dele. Os dados
+# em si ficam de fora: são megabytes de CSV de terceiro que não têm por que
+# entrar no histórico. Os symlinks acompanham o alvo: commitar link sem destino
+# só produz link quebrado no clone.
+#
+# Instalou outra? Some uma linha aqui.
+.agents/
+.claude/skills/frontend-design
+.claude/skills/ui-ux-pro-max
+
