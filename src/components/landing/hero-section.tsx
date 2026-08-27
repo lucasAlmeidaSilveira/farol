@@ -95,11 +95,11 @@ export function HeroSection() {
           </Reveal>
         </div>
 
-        {/* A prova entra depois da promessa, e do lado dela. */}
+        {/* A prova entra depois da promessa. Sem deslocamento lateral: no
+            celular ele empurraria o card para fora da tela. */}
         <Reveal
           variant="reveal"
           delay={0.22}
-          x={20}
           onMount
           className="min-w-0 lg:pl-4"
         >
