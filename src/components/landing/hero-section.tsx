@@ -121,7 +121,23 @@ export function HeroSection() {
  */
 function BeamGlow() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+    /*
+      Só a partir de `lg`, e isso é correção de bug, não gosto.
+
+      Abaixo disso o hero é uma coluna só ocupando a largura inteira, e um halo
+      de 40rem não tem para onde ir: ele fica ATRÁS DO TEXTO. Medido com
+      axe-core em 390px, o rótulo e a linha de apoio caíam para 2.19:1 sobre o
+      dourado — menos da metade do mínimo da norma, e visível a olho nu na
+      captura. No desktop as duas colunas dão o espaço vazio onde ele deve
+      viver.
+
+      Vale a régua do `globals.css`: se o movimento rouba a atenção do texto,
+      está forte demais. Aqui ele estava roubando o texto inteiro.
+    */
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 hidden lg:block"
+    >
       {/* Duas camadas com durações que não se dividem (26s e 41s) nunca
           repetem o mesmo encontro — é isso que faz o fundo parecer vivo em vez
           de um laço rodando. O halo que respira vai por dentro, para as duas
