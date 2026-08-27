@@ -263,7 +263,7 @@ export function EditAmountSheet({
           <Button
             size="block"
             disabled={
-              amount === ZERO ||
+              amount <= ZERO ||
               name.trim() === '' ||
               !validDue ||
               !validCount ||
