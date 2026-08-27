@@ -8,8 +8,14 @@ import { AllocationBar, type Slice } from './allocation-bar'
 /**
  * O card do número principal. É a razão de o app existir.
  *
- * A superfície é azul-noite nos DOIS temas — o farol brilha no escuro, e o
- * número que guia nunca fica num card claro.
+ * A superfície é a `beacon`: verde-clara no tema claro, verde-profunda no
+ * escuro. Ela nunca é a mesma cor do fundo da tela — o número que guia precisa
+ * de um card próprio para não se confundir com o resto.
+ *
+ * Toda tinta aqui vem de token (`beacon-foreground`, `light`, `beacon-muted`),
+ * cujo contraste o `pnpm palette` verifica contra a superfície. Não fixe cor da
+ * marca por cima disso: foi assim que o logotipo da tela de entrada foi parar
+ * em 1.02:1.
  *
  * Quando a folga fica negativa, a mudança não é só de cor: o feixe do farol
  * apaga, o rótulo muda de "livre para gastar" para "você passou do plano", e o

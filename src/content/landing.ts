@@ -44,6 +44,7 @@ export type LandingCta = {
  *  adicionar uma chave aqui e esquecer do desenho lá. */
 export type FeatureIcon =
   | 'beacon'
+  | 'pace'
   | 'proportional'
   | 'income'
   | 'due'
@@ -54,7 +55,7 @@ export type FeatureIcon =
 
 /** Peças reais do app que a landing sabe renderizar. Adicionar uma chave aqui
  *  obriga o componente de histórias a desenhá-la — o TypeScript cobra. */
-export type FeatureDemo = 'commitment' | 'due' | 'income'
+export type FeatureDemo = 'commitment' | 'due' | 'income' | 'pace'
 
 export type Feature = {
   id: string
@@ -254,7 +255,14 @@ export const FEATURES: readonly Feature[] = [
     id: 'beacon',
     icon: 'beacon',
     title: 'Um número manda na tela',
-    body: 'Quanto ainda dá para gastar até o fim do mês, com o ritmo por dia embaixo. É a primeira coisa que você lê ao abrir o app — e quase sempre a única de que precisa.',
+    body: 'Quanto ainda dá para gastar até o fim do mês, com o quanto por dia logo abaixo. É a primeira coisa que você lê ao abrir o app — e quase sempre a única de que precisa.',
+  },
+  {
+    id: 'pace',
+    icon: 'pace',
+    title: 'O mês fechado antes de fechar',
+    body: 'O app compara o que você já gastou com o quanto do mês já passou e diz onde isso termina se o ritmo continuar. Saber no dia 12 que o mês fecha acima do plano ainda dá tempo de mudar; saber no dia 30, não.',
+    demo: 'pace',
   },
   {
     id: 'proportional',

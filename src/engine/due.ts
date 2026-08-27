@@ -155,3 +155,13 @@ const rank = (status: DueStatus): number => RANK[status]
 /** Quanto ainda falta pagar entre as contas com vencimento. */
 export const outstandingTotal = (items: readonly DueItem[]): Cents =>
   add(...items.map((item) => item.outstandingCents))
+
+/**
+ * Quanto já foi quitado entre as contas com vencimento.
+ *
+ * Usa `amountCents`, e não `outstandingCents`: numa conta paga o segundo é
+ * zero por definição, e somar zeros devolveria zero — que é justamente o
+ * número que a linha "3 contas pagas" NÃO pode mostrar.
+ */
+export const settledTotal = (items: readonly DueItem[]): Cents =>
+  add(...items.map((item) => item.amountCents))

@@ -20,12 +20,10 @@
     "palette:write": "node scripts/palette.mjs && node scripts/write-palette.mjs"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.9.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "@tanstack/react-query": "^5.101.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
     "firebase": "^12.17.1",
     "lucide-react": "^1.31.0",
     "motion": "^13.1.0",
@@ -34,7 +32,6 @@
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-hook-form": "^7.85.0",
     "serwist": "^9.5.12",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",

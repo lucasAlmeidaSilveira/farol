@@ -146,7 +146,7 @@ Não desfaça sem substituir por algo equivalente:
 ```
 src/components/ui/        primitivos (shadcn escrito à mão, sobre Radix)
 src/components/money/     MoneyValue, MoneyInput
-src/components/home/      BeaconCard, AllocationBar, CommitmentCard, DuePanel
+src/components/home/      BeaconCard, PaceCard, AllocationBar, CommitmentCard, DuePanel
 src/components/plan/      sheets de renda, gasto e vencimento
 src/components/entries/   entrada rápida, teclado, impacto de renda
 src/components/shell/     AppShell, Sidebar, MobileNav, PageHeader

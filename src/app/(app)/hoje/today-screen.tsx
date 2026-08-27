@@ -8,6 +8,7 @@ import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { EmptyBeacon } from '@/components/home/empty-beacon'
 import { IncomeCard } from '@/components/home/income-card'
+import { PaceCard } from '@/components/home/pace-card'
 import { Stagger, StaggerItem } from '@/components/motion/reveal'
 import { InstallCard } from '@/components/shell/install-card'
 import { PageContainer, PageHeader } from '@/components/shell/page-header'
@@ -147,6 +148,23 @@ function LoadedState({
             Você ainda não lançou nada este mês. Tudo bem — o número acima já
             conta com suas contas fixas.
           </p>
+        ) : null}
+
+        {/*
+          O ritmo só aparece depois do primeiro gasto, e é de propósito: sem
+          nada lançado ele diria "neste ritmo o mês fecha em R$ 0,00", que é
+          verdade e não serve para nada. A nota acima já cobre esse estado.
+
+          Aqui embaixo do número porque é a elaboração dele: o valor grande diz
+          QUANTO sobra, o ritmo diz SE vai sobrar. Trocar a ordem faria a tela
+          responder a segunda pergunta antes da primeira.
+        */}
+        {!noEntriesYet && summary.totals.freeExpenseCents > ZERO ? (
+          <PaceCard
+            pace={summary.pace}
+            availableCents={summary.totals.availableToSpendCents}
+            spentCents={summary.totals.freeExpenseCents}
+          />
         ) : null}
       </StaggerItem>
 

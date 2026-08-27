@@ -152,6 +152,12 @@ diz quando ela precisa acompanhar uma mudança, um hook lembra disso ao editar
 verificar sozinho — exemplo cuja conta não fecha e tela do app que a página
 nunca menciona.
 
+Skills instaladas de fora (`npx skills add`) seguem a regra oposta: o que é
+versionado é o `skills-lock.json`, com origem e hash de cada uma, e
+`npx skills experimental_install` restaura. Os dados delas ficam no
+`.gitignore` — são megabytes de terceiro, e o lock já garante que todo clone
+receba exatamente a mesma versão.
+
 O bloco `nextjs-agent-rules` no fim do `AGENTS.md` é escrito pelo `next dev` e se
 regenera sozinho — o conteúdo acima dele é preservado. `.claude/settings.local.json`
 é pessoal e fica no `.gitignore`.

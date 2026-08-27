@@ -142,10 +142,18 @@ export function SignInForm() {
 }
 
 /**
- * O painel de marca — a superfície `beacon`, verde-profunda nos DOIS temas.
+ * O painel de marca, sobre a superfície `beacon`.
  *
- * É a regra da marca: o farol brilha no escuro. Um painel que clareia junto
- * com o tema perderia exatamente a metáfora que dá nome ao produto.
+ * **A tinta da marca aqui acompanha o tema, e isso não é preferência.** O
+ * `beacon` é verde-claro no tema claro e verde-profundo no escuro; fixar a
+ * marca em `onDark` — tinta quase branca — colocava #E7F2EC sobre #DFF1E8 e
+ * dava **1.02:1** de contraste. O logotipo simplesmente não existia para quem
+ * abria a tela, que é sempre no claro por causa do `FORCE_LIGHT`.
+ *
+ * O `pnpm palette` não pega esse caso: os tons `onDark`/`onLight` são
+ * hexadecimais fixos, fora do sistema de tokens que o script verifica. É o
+ * único ponto cego dele — e `tone="theme"` é o que mantém a marca dentro do
+ * sistema, onde o contraste é calculado.
  */
 function BrandPanel() {
   return (
@@ -163,7 +171,7 @@ function BrandPanel() {
         className="relative flex h-full flex-col justify-between gap-12"
       >
         <StaggerItem>
-          <FarolLockup size={34} tone="onDark" />
+          <FarolLockup size={34} tone="theme" />
         </StaggerItem>
 
         <StaggerItem>
