@@ -1,5 +1,11 @@
 import { cents } from '@/domain/money'
-import { calendarPeriodOf, type LocalDate } from '@/domain/period'
+import {
+  calendarPeriodOf,
+  dayOfMonth,
+  lastDayOfMonth,
+  type LocalDate,
+  yearMonth,
+} from '@/domain/period'
 import { covenantPreset, fixedBillDraft } from '@/domain/presets'
 import type {
   Commitment,
@@ -58,7 +64,16 @@ const FREELANCE_FORECAST_CENTS = 60_000
 const BILLS = [
   { id: 'rent', name: 'Aluguel', cents: 150_000, dueDay: 10 },
   { id: 'internet', name: 'Internet', cents: 12_900, dueDay: 15 },
-  { id: 'power', name: 'Energia', cents: 24_100, dueDay: 20 },
+  /*
+    A conta que nunca fica para trás.
+
+    Com os três vencimentos fixos, do dia 21 em diante o exemplo já tinha tudo
+    quitado e o painel da landing mostrava "tudo pago por aqui" — a seção que
+    vende "nenhuma conta pega você de surpresa" ficava sem nenhuma conta, por
+    um terço de cada mês. Esta acompanha o calendário, então há sempre algo a
+    vencer para a listagem mostrar.
+  */
+  { id: 'power', name: 'Energia', cents: 24_100, dueDay: 'upcoming' },
 ] as const
 
 const SPENDING = [
@@ -155,7 +170,12 @@ function baseInput(today: LocalDate): EngineInput {
     ...BILLS.map(
       (bill) =>
         ({
-          ...fixedBillDraft(period, bill.name, cents(bill.cents), bill.dueDay),
+          ...fixedBillDraft(
+            period,
+            bill.name,
+            cents(bill.cents),
+            bill.dueDay === 'upcoming' ? upcomingDay(today) : bill.dueDay,
+          ),
           id: `demo-${bill.id}` as CommitmentId,
           ...AUDIT,
         }) as Commitment,
@@ -214,6 +234,19 @@ export const demoIncomeImpact = (today: LocalDate): IncomeImpact =>
     date: today,
     closesForecast: false,
   })
+
+/**
+ * Um vencimento sempre à frente: daqui a três dias, sem passar do fim do mês.
+ *
+ * Três dias porque é o limiar em que a engine marca a conta como próxima
+ * (`SOON_THRESHOLD_DAYS`), então o exemplo mostra a linha em destaque em vez de
+ * uma data distante e sem urgência. No último dia do mês o `min` a traz para
+ * hoje — que a engine lê como "vence hoje", e continua pendente.
+ */
+function upcomingDay(today: LocalDate): number {
+  const { year, month } = yearMonth(calendarPeriodOf(today))
+  return Math.min(dayOfMonth(today) + 3, lastDayOfMonth(year, month))
+}
 
 /** O dia `day` deste mês, ou hoje, o que vier primeiro. */
 function dayWithin(today: LocalDate, day: number): LocalDate {

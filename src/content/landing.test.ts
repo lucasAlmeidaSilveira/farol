@@ -16,7 +16,14 @@ import { localDate } from '@/domain/period'
 
 /* Pontos do mês em que o exemplo precisa continuar de pé: a virada, o meio, o
    fim e um fevereiro, que é onde toda conta de calendário quebra primeiro. */
-const DAYS = ['2026-03-01', '2026-03-16', '2026-03-31', '2026-02-28'] as const
+const DAYS = [
+  '2026-03-01',
+  '2026-03-16',
+  '2026-03-22',
+  '2026-03-29',
+  '2026-03-31',
+  '2026-02-28',
+] as const
 
 describe('mês de exemplo', () => {
   /*
@@ -50,6 +57,20 @@ describe('mês de exemplo', () => {
     O exemplo agora quita o que já venceu, e isto impede a regressão em
     qualquer dia do mês.
   */
+  /*
+    O outro lado da moeda do teste acima, e ele custou uma landing fraca por
+    uns dez dias: quitar o que venceu deixava o painel vazio do dia 21 em
+    diante, com "tudo pago por aqui" na seção que vende vencimentos. Não basta
+    não ter conta atrasada — precisa SOBRAR conta para a listagem mostrar.
+  */
+  it.each(DAYS)('sempre tem conta pendente para mostrar no dia %s', (day) => {
+    const pendentes = demoSummary(localDate(day)).due.filter(
+      (item) => item.status !== 'settled',
+    )
+
+    expect(pendentes.length).toBeGreaterThan(0)
+  })
+
   it.each(DAYS)('não mostra conta atrasada no dia %s', (day) => {
     const overdue = demoSummary(localDate(day)).due.filter(
       (item) => item.status === 'overdue',
