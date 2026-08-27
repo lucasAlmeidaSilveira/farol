@@ -158,7 +158,7 @@ export function AddIncomeSheet({
           <Button
             size="block"
             disabled={
-              name.trim() === '' || amount === ZERO || !validWhen || saving
+              name.trim() === '' || amount <= ZERO || !validWhen || saving
             }
             onClick={() => {
               onAdd({

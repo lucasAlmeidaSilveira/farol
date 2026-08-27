@@ -99,7 +99,7 @@ Uma sessão fria do app faz ~90 leituras, contra as 50.000/dia do plano gratuito
 | -------------------- | ------------------------------------------------------------- |
 | `pnpm dev`           | Servidor de desenvolvimento                                   |
 | `pnpm build`         | Build de produção (inclui o service worker)                   |
-| `pnpm typecheck`     | `tsc --noEmit`                                                |
+| `pnpm typecheck`     | `next typegen` e depois `tsc --noEmit` — nesta ordem          |
 | `pnpm lint`          | ESLint com `--fix`                                            |
 | `pnpm test`          | Testes unitários                                              |
 | `pnpm test:coverage` | Cobertura (100% em `domain/` e `engine/`)                     |

@@ -38,16 +38,16 @@ export function PaceCard({
   spentCents,
   className,
 }: PaceCardProps) {
-  const alerta = pace.status === 'ahead' || pace.status === 'over'
+  const warning = pace.status === 'ahead' || pace.status === 'over'
 
   // Sem teto não há régua: um mês sem renda cadastrada mostraria uma barra
   // dividida por zero, e uma barra sem escala mente mais do que informa.
-  const temEscala = availableCents > 0
+  const hasScale = availableCents > 0
 
-  const gastoPct = temEscala
+  const spentPct = hasScale
     ? Math.min(100, Math.round((spentCents / availableCents) * 100))
     : 0
-  const mesPct =
+  const monthPct =
     pace.totalDays > 0
       ? Math.min(100, Math.round((pace.elapsedDays / pace.totalDays) * 100))
       : 0
@@ -68,9 +68,9 @@ export function PaceCard({
         </span>
       </header>
 
-      {temEscala ? (
+      {hasScale ? (
         <div className="flex flex-col gap-2">
-          <Barra gastoPct={gastoPct} mesPct={mesPct} alerta={alerta} />
+          <PaceBar spentPct={spentPct} monthPct={monthPct} warning={warning} />
 
           {/* Sem esta legenda, o traço no meio da barra é um risco sem nome —
               e marca que não se explica vira sujeira, não informação. */}
@@ -82,7 +82,7 @@ export function PaceCard({
               <span
                 className={cn(
                   'h-1.5 w-3 rounded-full',
-                  alerta ? 'bg-negative' : 'bg-positive',
+                  warning ? 'bg-negative' : 'bg-positive',
                 )}
               />
               gasto
@@ -95,7 +95,7 @@ export function PaceCard({
         </div>
       ) : null}
 
-      <Veredito
+      <Verdict
         pace={pace}
         availableCents={availableCents}
         spentCents={spentCents}
@@ -107,17 +107,17 @@ export function PaceCard({
               gastar" quando não dá, e um zero em verde ao lado de "você passou
               do plano" faz o card se contradizer na mesma linha. */}
           {pace.dailyPaceCents !== null && pace.status !== 'over' ? (
-            <Numero
-              rotulo="Ainda dá para gastar"
+            <Stat
+              label="Ainda dá para gastar"
               cents={pace.dailyPaceCents}
               tone="positive"
             />
           ) : null}
           {pace.averageDailySpendCents !== null ? (
-            <Numero
-              rotulo="Você tem gastado"
+            <Stat
+              label="Você tem gastado"
               cents={pace.averageDailySpendCents}
-              tone={alerta ? 'negative' : 'muted'}
+              tone={warning ? 'negative' : 'muted'}
             />
           ) : null}
         </dl>
@@ -133,19 +133,19 @@ export function PaceCard({
  * lendo a comparação. E a descrição para leitor de tela diz as duas
  * porcentagens na mesma frase, porque separadas elas não formam a informação.
  */
-function Barra({
-  gastoPct,
-  mesPct,
-  alerta,
+function PaceBar({
+  spentPct,
+  monthPct,
+  warning,
 }: {
-  gastoPct: number
-  mesPct: number
-  alerta: boolean
+  spentPct: number
+  monthPct: number
+  warning: boolean
 }) {
   return (
     <div
       role="img"
-      aria-label={`Você gastou ${gastoPct}% do que dá para gastar, e ${mesPct}% do mês passou.`}
+      aria-label={`Você gastou ${spentPct}% do que dá para gastar, e ${monthPct}% do mês passou.`}
       className="relative h-3 w-full"
     >
       <div className="bg-muted absolute inset-0 rounded-full" />
@@ -153,22 +153,22 @@ function Barra({
       <div
         className={cn(
           'absolute inset-y-0 left-0 rounded-full transition-[width] duration-500',
-          alerta ? 'bg-negative' : 'bg-positive',
+          warning ? 'bg-negative' : 'bg-positive',
         )}
-        style={{ width: `${gastoPct}%` }}
+        style={{ width: `${spentPct}%` }}
       />
 
       <span
         aria-hidden="true"
         className="bg-foreground absolute inset-y-[-3px] w-0.5 rounded-full"
-        style={{ left: `calc(${mesPct}% - 1px)` }}
+        style={{ left: `calc(${monthPct}% - 1px)` }}
       />
     </div>
   )
 }
 
 /** A frase que fecha a leitura. Uma por estado, e nenhuma julga. */
-function Veredito({
+function Verdict({
   pace,
   availableCents,
   spentCents,
@@ -177,7 +177,7 @@ function Veredito({
   availableCents: Cents
   spentCents: Cents
 }) {
-  const projetado = pace.projectedSpendCents
+  const projected = pace.projectedSpendCents
 
   if (pace.status === 'noData') {
     return (
@@ -191,9 +191,9 @@ function Veredito({
   if (pace.status === 'ended') {
     return (
       <p className="text-muted-foreground text-sm text-balance">
-        O mês fechou com <Valor cents={spentCents} tone="default" /> de gasto
+        O mês fechou com <Amount cents={spentCents} tone="default" /> de gasto
         livre, de um teto de{' '}
-        <Valor cents={availableCents} tone="muted" pontuacao="." />
+        <Amount cents={availableCents} tone="muted" punctuation="." />
       </p>
     )
   }
@@ -207,29 +207,29 @@ function Veredito({
     )
   }
 
-  if (pace.status === 'ahead' && projetado !== null) {
+  if (pace.status === 'ahead' && projected !== null) {
     return (
       <p className="text-negative-soft-foreground bg-negative-soft rounded-md px-3 py-2 text-sm text-balance">
         Neste ritmo, o mês fecha em{' '}
-        <Valor cents={projetado} tone="negative" pontuacao="." /> O teto é{' '}
-        <Valor cents={availableCents} tone="negative" pontuacao="." /> Ainda dá
-        para ajustar.
+        <Amount cents={projected} tone="negative" punctuation="." /> O teto é{' '}
+        <Amount cents={availableCents} tone="negative" punctuation="." /> Ainda
+        dá para ajustar.
       </p>
     )
   }
 
   return (
     <p className="text-muted-foreground text-sm text-balance">
-      {projetado !== null ? (
+      {projected !== null ? (
         <>
           Neste ritmo, o mês fecha em{' '}
-          <Valor cents={projetado} tone="positive" pontuacao="." /> O teto do
-          mês é <Valor cents={availableCents} tone="muted" pontuacao="." />
+          <Amount cents={projected} tone="positive" punctuation="." /> O teto do
+          mês é <Amount cents={availableCents} tone="muted" punctuation="." />
         </>
       ) : (
         <>
-          Você gastou <Valor cents={spentCents} tone="default" /> de um teto de{' '}
-          <Valor cents={availableCents} tone="muted" pontuacao="." />
+          Você gastou <Amount cents={spentCents} tone="default" /> de um teto de{' '}
+          <Amount cents={availableCents} tone="muted" punctuation="." />
         </>
       )}
     </p>
@@ -237,42 +237,42 @@ function Veredito({
 }
 
 /**
- * Valor com a pontuação colada nele.
+ * Amount com a pontuação colada nele.
  *
  * `<MoneyValue>` é `inline-block`, então a vírgula ou o ponto que vêm logo
  * depois podem quebrar para a linha seguinte e aparecer órfãos no começo dela.
  * Num parágrafo curto isso é feio; ao lado de um número é pior, porque por um
  * instante parece parte do valor.
  */
-function Valor({
+function Amount({
   cents,
   tone,
-  pontuacao,
+  punctuation,
 }: {
   cents: Cents
   tone: 'positive' | 'negative' | 'muted' | 'default'
-  pontuacao?: string
+  punctuation?: string
 }) {
   return (
     <span className="whitespace-nowrap">
       <MoneyValue cents={cents} size="sm" tone={tone} />
-      {pontuacao}
+      {punctuation}
     </span>
   )
 }
 
-function Numero({
-  rotulo,
+function Stat({
+  label,
   cents,
   tone,
 }: {
-  rotulo: string
+  label: string
   cents: Cents
   tone: 'positive' | 'negative' | 'muted'
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground text-xs">{rotulo}</dt>
+      <dt className="text-muted-foreground text-xs">{label}</dt>
       <dd>
         <MoneyValue cents={cents} size="md" tone={tone} />
         <span className="text-muted-foreground text-xs"> /dia</span>

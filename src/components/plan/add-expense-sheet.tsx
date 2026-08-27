@@ -376,7 +376,7 @@ export function AddExpenseSheet({
             <Button
               size="block"
               disabled={
-                monthlyCents === ZERO ||
+                monthlyCents <= ZERO ||
                 draft.label.trim() === '' ||
                 !isValidDueRule(draft.due) ||
                 !validCount ||

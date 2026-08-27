@@ -58,13 +58,18 @@ export function FeatureStories() {
             className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14"
           >
             {/*
-              Texto e peça entram um de cada lado, na direção em que já estão —
-              o movimento confirma o arranjo em vez de contrariá-lo. No celular
-              não há lado: `x` vira 0 e sobra a subida.
+              A entrada é só vertical, e isso é conserto de bug.
+
+              A ideia original era cada lado entrar da direção em que já está.
+              Só que no celular não existe lado: a coluna ocupa a largura
+              inteira, e um deslocamento de 24px empurrava o card para FORA da
+              tela — medido, 4px cortados em 390px. O `overflow-x-clip` escondia
+              o sintoma, e o comentário aqui chegou a afirmar que no celular o
+              deslocamento virava zero. Nunca virou: era a mesma prop para as
+              duas larguras.
             */}
             <Reveal
               variant="reveal"
-              x={index % 2 === 1 ? 24 : -24}
               className={cn(
                 'flex min-w-0 flex-col gap-3',
                 // Ímpar troca de lado no desktop; no celular o texto vem
@@ -80,12 +85,7 @@ export function FeatureStories() {
               </p>
             </Reveal>
 
-            <Reveal
-              variant="reveal"
-              x={index % 2 === 1 ? -24 : 24}
-              delay={0.12}
-              className="min-w-0"
-            >
+            <Reveal variant="reveal" delay={0.12} className="min-w-0">
               <Demo kind={feature.demo} summary={summary} sources={sources} />
             </Reveal>
           </article>

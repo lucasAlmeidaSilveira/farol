@@ -98,7 +98,18 @@ function SheetContent({
             />
           </SheetPrimitive.Overlay>
 
-          <SheetPrimitive.Content forceMount asChild {...props}>
+          <SheetPrimitive.Content
+            forceMount
+            asChild
+            onCloseAutoFocus={(event) => {
+              // O Radix focaria o gatilho dele, que aqui não existe. Barrar o
+              // padrão evita um salto de foco no meio da animação de saída;
+              // quem devolve é o `onExitComplete`, quando o nó já saiu.
+              event.preventDefault()
+              props.onCloseAutoFocus?.(event)
+            }}
+            {...props}
+          >
             <m.div
               data-slot="sheet-content"
               initial={offset}
