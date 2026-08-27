@@ -2,6 +2,7 @@ import { proportionalLineOf } from '@/components/home/beacon-view'
 import { CommitmentCard } from '@/components/home/commitment-card'
 import { DuePanel } from '@/components/home/due-panel'
 import { IncomeCard } from '@/components/home/income-card'
+import { PaceCard } from '@/components/home/pace-card'
 import { Reveal } from '@/components/motion/reveal'
 import { demoSources, demoSummary } from '@/content/demo-month'
 import {
@@ -131,6 +132,15 @@ function Demo({
        demonstração. */
     case 'due':
       return <DuePanel items={summary.due} />
+
+    case 'pace':
+      return (
+        <PaceCard
+          pace={summary.pace}
+          availableCents={summary.totals.availableToSpendCents}
+          spentCents={summary.totals.freeExpenseCents}
+        />
+      )
 
     case 'income':
       return (

@@ -7,6 +7,7 @@ export {
   type DueStatus,
   outstandingTotal,
   resolveWithin,
+  settledTotal,
   SOON_THRESHOLD_DAYS,
 } from './due'
 export { consolidateIncome } from './income'

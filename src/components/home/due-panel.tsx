@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import type { DueItem, DueStatus } from '@/engine'
-import { outstandingTotal } from '@/engine'
+import { outstandingTotal, settledTotal } from '@/engine'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -78,6 +78,7 @@ export function DuePanel({
   if (items.length === 0) return null
 
   const pending = items.filter((item) => item.status !== 'settled')
+  const settled = items.filter((item) => item.status === 'settled')
   const overdue = items.filter((item) => item.status === 'overdue')
 
   return (
@@ -102,9 +103,9 @@ export function DuePanel({
         ) : null}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
         <ul className="flex flex-col">
-          {items.map((item) => {
+          {pending.map((item) => {
             const status = STATUS[item.status]
 
             return (
@@ -172,6 +173,28 @@ export function DuePanel({
             )
           })}
         </ul>
+
+        {/*
+          As pagas viram UMA linha.
+
+          Este card responde "o que ainda me cobra alguma coisa". No fim do mês
+          a lista chegava a três riscadas para uma pendente, e a conta que
+          importava virava agulha no palheiro — o oposto do trabalho dele. Quem
+          quiser conferir o que já pagou tem a tela Mês, que existe exatamente
+          para isso.
+        */}
+        {settled.length > 0 ? (
+          <p className="text-muted-foreground border-border flex items-center justify-between gap-3 border-t pt-3 text-sm">
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="text-positive">
+                ✓
+              </span>
+              {settled.length}{' '}
+              {settled.length === 1 ? 'conta paga' : 'contas pagas'} este mês
+            </span>
+            <MoneyValue cents={settledTotal(settled)} size="sm" tone="muted" />
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   )

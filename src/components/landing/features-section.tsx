@@ -1,5 +1,6 @@
 import {
   CalendarClock,
+  Gauge,
   Lightbulb,
   type LucideIcon,
   Palette,
@@ -24,6 +25,7 @@ import { Section, SectionHeading } from './section'
  */
 const ICONS: Record<FeatureIcon, LucideIcon> = {
   beacon: Lightbulb,
+  pace: Gauge,
   proportional: Percent,
   income: TrendingUp,
   due: CalendarClock,

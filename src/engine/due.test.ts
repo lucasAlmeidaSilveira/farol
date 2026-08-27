@@ -1,7 +1,7 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 
-import { cents } from '@/domain/money'
+import { cents, ZERO } from '@/domain/money'
 import { cycleFor, isWithinCycle, localDate, period } from '@/domain/period'
 import type { CommitmentId } from '@/domain/types'
 
@@ -10,6 +10,7 @@ import {
   dueSchedule,
   outstandingTotal,
   resolveWithin,
+  settledTotal,
 } from './due'
 import type { CommitmentLine } from './types'
 
@@ -183,6 +184,26 @@ describe('dueSchedule', () => {
       dueSchedule({ commitments: [line('X', null)], cycle: c, today }),
     ).toEqual([])
     expect(outstandingTotal([])).toBe(0)
+    expect(settledTotal([])).toBe(0)
+  })
+
+  /*
+    O total das pagas soma o valor APURADO, não o que falta — numa conta paga o
+    que falta é zero por definição, e a linha "3 contas pagas · R$ 0,00" seria
+    a informação exatamente ao contrário.
+  */
+  it('soma o valor apurado das contas já quitadas', () => {
+    const items = dueSchedule({
+      commitments: [
+        line('A', 10, { consideredCents: cents(5_000), outstandingCents: ZERO }),
+        line('B', 20, { consideredCents: cents(7_500), outstandingCents: ZERO }),
+      ],
+      cycle: c,
+      today,
+    })
+
+    expect(items.every((item) => item.status === 'settled')).toBe(true)
+    expect(settledTotal(items)).toBe(12_500)
   })
 })
 
